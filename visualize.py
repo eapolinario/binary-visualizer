@@ -50,13 +50,19 @@ def scan_pairs(path: Path) -> GridCounts:
 
     counts: GridCounts = defaultdict(int)
     with path.open("rb") as handle:
-        data = handle.read()
-        if len(data) < 2:
-            return counts
+        prev = None
+        while True:
+            chunk = handle.read(1024 * 1024 * 1024)  # 1 GiB chunks
+            if not chunk:
+                break
 
-        for pair in zip(data, data[1:]):
-            counts[pair] += 1
+            if prev is not None:
+                counts[(prev, chunk[0])] += 1
 
+            for i in range(len(chunk) - 1):
+                counts[(chunk[i], chunk[i + 1])] += 1
+
+            prev = chunk[-1]
     return counts
 
 
