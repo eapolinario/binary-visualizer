@@ -33,7 +33,14 @@ ppm-video:
 		echo "PPM_VIDEO_OUTPUT is required and should be a full path to the mp4 output"; \
 		exit 1; \
 	fi
-	ffmpeg -y -framerate $(PPM_FRAMERATE) -pattern_type glob -i '$(PPM_DIR)/*.ppm' -c:v h264_nvenc -preset slow -rc constqp -qp 0 $(PPM_VIDEO_OUTPUT)
+	@if [ -z "$$(find $(PPM_DIR) -maxdepth 1 -name '*.ppm' -print -quit)" ]; then \
+		echo "No .ppm files found in $(PPM_DIR)"; \
+		exit 1; \
+	fi
+	@tmp_ssa=$$(mktemp --suffix=.ssa); \
+	uv run python scripts/ppm_labels.py --ppm-dir "$(PPM_DIR)" --framerate $(PPM_FRAMERATE) --output "$$tmp_ssa"; \
+	ffmpeg -y -framerate $(PPM_FRAMERATE) -pattern_type glob -i '$(PPM_DIR)/*.ppm' -vf "pad=iw:ih+60:0:0:black,subtitles='$$tmp_ssa'" -c:v libx264 -preset veryslow -crf 0 -pix_fmt yuv444p $(PPM_VIDEO_OUTPUT); \
+	rm -f "$$tmp_ssa"
 
 # For every binary in BIN_DIR, generate a PPM and assemble them into a video.
 bin-video:
