@@ -35,3 +35,22 @@ make bin-video BIN_DIR=/path/to/bin_dir PPM_DIR=/tmp/ppm_frames PPM_VIDEO_OUTPUT
 ```
 
 `BIN_JOBS` controls parallelism when generating frames. The video uses `PPM_FRAMERATE` (default 4 fps) and adds a subtitle track to show the filename for each frame.
+
+## Examples
+
+### x86_64 ELF binaries
+
+https://github.com/user-attachments/assets/d9f3bcf7-4a61-4b2e-9d95-f34b4c4f4bb9
+
+### A few LLM models in the gguf format
+
+https://github.com/user-attachments/assets/2eb7c8d5-8d54-427a-ac48-979f8ae46f1d
+
+### Images in different formats
+
+TODO
+
+### Audio in different formats
+
+TODO
+
