@@ -16,8 +16,6 @@ Generate a single heatmap:
 
 ```bash
 make run INPUT=/path/to/binary OUTPUT=output.ppm SCALE=log
-# or directly:
-uv run visualize.py --scale log -o output.ppm /path/to/binary
 ```
 
 Tone-mapping options:
@@ -25,6 +23,51 @@ Tone-mapping options:
 - `log` (default): boosts rare pairs.
 - `sqrt`: softer contrast.
 - `linear`: raw counts.
+
+## 3D Visualization
+
+Generate an **interactive 3D visualization** by scanning byte **triplets** instead of pairs:
+
+```bash
+make run INPUT=/path/to/binary OUTPUT=output_3d.html SCALE=log MODE=3d
+```
+
+This creates an interactive HTML file with a 3D scatter plot where each point represents a byte triplet `[x, y, z]`. The visualization shows only triplets that actually occur in the file, making it easy to spot patterns.
+
+**Example:**
+```bash
+# Visualize /bin/ls in 3D
+make run INPUT=/bin/ls OUTPUT=ls_3d.html SCALE=log MODE=3d
+# Open ls_3d.html in your browser
+```
+
+**Note:** 3D mode requires Plotly. Install with `uv pip install plotly` if needed.
+
+**Features:**
+- **Interactive rotation**: Click and drag to rotate the 3D space
+- **Zoom**: Scroll to zoom in/out
+- **Hover details**: Hover over points to see:
+  - Exact byte triplet (in hex)
+  - Occurrence count
+  - Mapped brightness value
+- **Color coding**: Viridis colorscale from dark (rare) to bright (frequent)
+- **Sparse representation**: Only non-zero triplets are shown
+
+**Interpreting the output:**
+- **Clusters**: Dense regions indicate frequently co-occurring byte sequences
+- **Color**: Brighter yellow/green = more frequent triplets
+- **Distribution**: Spread shows variety of 3-byte patterns in the file
+- **Axis positions**:
+  - X-axis: First byte of triplet
+  - Y-axis: Second byte
+  - Z-axis: Third byte
+
+**Use cases:**
+- **Executable analysis**: Detect x86 instruction sequences (opcodes often 2-3 bytes)
+- **Format fingerprinting**: Identify file format structures by triplet clusters
+- **Compression detection**: Encrypted/compressed files show uniform distribution
+- **Pattern comparison**: Overlay multiple files to compare code patterns
+- **Malware analysis**: Identify unusual byte sequence patterns
 
 ## Batch processing and videos
 
