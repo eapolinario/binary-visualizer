@@ -71,29 +71,9 @@ make run INPUT=/bin/ls OUTPUT=ls_3d.html SCALE=log MODE=3d
 
 ## Batch processing and videos
 
-You can turn a directory of binaries into a video of PPM frames, each frame labeled with the source filename:
+Generate PPM frames for every file in a directory:
 
 ```bash
-make bin-video BIN_DIR=/path/to/bin_dir PPM_DIR=/tmp/ppm_frames PPM_VIDEO_OUTPUT=/tmp/output.mp4 SCALE=log BIN_JOBS=4
+make bin-ppm BIN_DIR=/path/to/bin_dir PPM_DIR=/tmp/ppm_frames SCALE=log BIN_JOBS=4
 ```
-
-`BIN_JOBS` controls parallelism when generating frames. The video uses `PPM_FRAMERATE` (default 4 fps) and adds a subtitle track to show the filename for each frame.
-
-## Examples
-
-### x86_64 ELF binaries
-
-https://github.com/user-attachments/assets/d9f3bcf7-4a61-4b2e-9d95-f34b4c4f4bb9
-
-### A few LLM models in the gguf format
-
-https://github.com/user-attachments/assets/2eb7c8d5-8d54-427a-ac48-979f8ae46f1d
-
-### Images in different formats
-
-TODO
-
-### Audio in different formats
-
-TODO
 
