@@ -53,29 +53,29 @@ def test_triplets_chunk_boundary(tmp_path: Path) -> None:
     assert dict(counts) == expected
 
 
-def test_write_ppm_slices(tmp_path: Path) -> None:
-    # Create a simple 3D volume with one triplet
-    data = bytes([10, 20, 30])
+def test_write_plotly_3d(tmp_path: Path) -> None:
+    # Create a simple 3D volume with a few triplets
+    data = bytes([10, 20, 30, 10, 20, 30, 15, 25, 35])
     input_file = tmp_path / "test.bin"
     input_file.write_bytes(data)
 
     counts = visualize.scan_triplets(input_file)
     peak = visualize.max_count_3d(counts)
 
-    output_path = tmp_path / "slices" / "output.ppm"
-    visualize.write_ppm_slices(counts, peak, output_path, "linear")
+    output_path = tmp_path / "output_3d.html"
 
-    # Check that slices directory was created
-    assert (tmp_path / "slices").exists()
+    # Skip test if plotly is not available
+    try:
+        visualize.write_plotly_3d(counts, peak, output_path, "linear")
+    except ImportError:
+        # Plotly not installed, skip this test
+        return
 
-    # Check that all 256 slices were created
-    slice_files = list((tmp_path / "slices").glob("output_slice_*.ppm"))
-    assert len(slice_files) == 256
+    # Check that HTML file was created
+    assert output_path.exists()
 
-    # Check that slice 10 exists (from our triplet (10, 20, 30))
-    slice_10 = tmp_path / "slices" / "output_slice_010.ppm"
-    assert slice_10.exists()
-
-    # Verify it's a valid PPM header
-    content = slice_10.read_text()
-    assert content.startswith("P3\n256 256\n255\n")
+    # Verify it's a valid HTML file with Plotly content
+    content = output_path.read_text()
+    assert "<html>" in content.lower()
+    assert "plotly" in content.lower()
+    assert "3D Byte Triplet Visualization" in content

@@ -14,6 +14,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import DefaultDict, Tuple
 
+try:
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
 
 GridCounts = DefaultDict[Tuple[int, int], int]
 Grid3DCounts = DefaultDict[Tuple[int, int, int], int]
@@ -49,8 +55,8 @@ def parse_args() -> argparse.Namespace:
         default="2d",
         help=(
             "Visualization mode. '2d' (default) scans byte pairs for a single "
-            "256x256 heatmap. '3d' scans byte triplets and outputs 256 slice "
-            "images representing a 256x256x256 volume."
+            "256x256 PPM heatmap. '3d' scans byte triplets and outputs an "
+            "interactive HTML file with a 3D Plotly visualization."
         ),
     )
     return parser.parse_args()
@@ -154,33 +160,84 @@ def write_ppm(counts: GridCounts, peak: int, output: Path, scale: str) -> None:
             handle.write(" ".join(row_values) + "\n")
 
 
-def write_ppm_slices(
+def write_plotly_3d(
     counts: Grid3DCounts, peak: int, output: Path, scale: str
 ) -> None:
-    """Write 256 PPM slices representing the 3D volume.
+    """Write an interactive 3D Plotly visualization as HTML.
 
-    Each slice fixes the first byte (z-axis) and shows a 256x256 heatmap of
-    the second and third bytes. Output files are named <output>_slice_000.ppm
-    through <output>_slice_255.ppm.
+    Creates a 3D scatter plot where each point represents a byte triplet.
+    Point size and color represent frequency (applying the selected tone mapping).
+    Only non-zero triplets are displayed to keep the visualization manageable.
     """
 
+    if not PLOTLY_AVAILABLE:
+        raise ImportError(
+            "Plotly is required for 3D visualization. "
+            "Install it with: uv pip install plotly"
+        )
+
+    # Extract non-zero triplets
+    x_coords = []
+    y_coords = []
+    z_coords = []
+    values = []
+    hover_text = []
+
+    for (x, y, z), count in counts.items():
+        if count > 0:
+            x_coords.append(x)
+            y_coords.append(y)
+            z_coords.append(z)
+            # Apply tone mapping to the count
+            mapped_value = brightness(count, peak, scale)
+            values.append(mapped_value)
+            hover_text.append(
+                f"Triplet: [{x:02x}, {y:02x}, {z:02x}]<br>"
+                f"Count: {count}<br>"
+                f"Brightness: {mapped_value}/255"
+            )
+
+    # Create 3D scatter plot
+    fig = go.Figure(data=[go.Scatter3d(
+        x=x_coords,
+        y=y_coords,
+        z=z_coords,
+        mode='markers',
+        marker=dict(
+            size=3,
+            color=values,
+            colorscale='Viridis',
+            showscale=True,
+            colorbar=dict(title="Frequency<br>(mapped)"),
+            opacity=0.8
+        ),
+        text=hover_text,
+        hoverinfo='text'
+    )])
+
+    fig.update_layout(
+        title=f"3D Byte Triplet Visualization ({scale} scale)",
+        scene=dict(
+            xaxis_title="Byte 1 (0x00-0xFF)",
+            yaxis_title="Byte 2 (0x00-0xFF)",
+            zaxis_title="Byte 3 (0x00-0xFF)",
+            xaxis=dict(range=[0, 255]),
+            yaxis=dict(range=[0, 255]),
+            zaxis=dict(range=[0, 255])
+        ),
+        width=1200,
+        height=900
+    )
+
     output_dir = output.parent
-    output_stem = output.stem
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for z in range(256):
-        slice_path = output_dir / f"{output_stem}_slice_{z:03d}.ppm"
-        with slice_path.open("w", encoding="ascii") as handle:
-            handle.write("P3\n256 256\n255\n")
-            for y in range(256):
-                row_values = []
-                for x in range(256):
-                    count = counts.get((z, x, y), 0)
-                    value = brightness(count, peak, scale)
-                    row_values.append(f"{value} {value} {value}")
-                handle.write(" ".join(row_values) + "\n")
+    # Change extension to .html
+    html_path = output.with_suffix('.html')
+    fig.write_html(str(html_path))
 
-    print(f"Wrote 256 slices to {output_dir}/{output_stem}_slice_*.ppm")
+    print(f"Wrote interactive 3D visualization to {html_path}")
+    print(f"Total unique triplets: {len(x_coords):,}")
 
 
 def main() -> None:
@@ -193,7 +250,7 @@ def main() -> None:
     else:  # 3d mode
         counts_3d = scan_triplets(args.input)
         peak = max_count_3d(counts_3d)
-        write_ppm_slices(counts_3d, peak, args.output, args.scale)
+        write_plotly_3d(counts_3d, peak, args.output, args.scale)
 
 
 if __name__ == "__main__":

@@ -28,47 +28,49 @@ Tone-mapping options:
 
 ## 3D Visualization
 
-Generate a 3D volume by scanning byte **triplets** instead of pairs:
+Generate an **interactive 3D visualization** by scanning byte **triplets** instead of pairs:
 
 ```bash
-make run INPUT=/path/to/binary OUTPUT=output_3d.ppm SCALE=log MODE=3d
+# Requires plotly: uv pip install plotly
+make run INPUT=/path/to/binary OUTPUT=output_3d.html SCALE=log MODE=3d
 # or directly:
-uv run visualize.py --mode 3d --scale log -o output_3d.ppm /path/to/binary
+uv run --with plotly visualize.py --mode 3d --scale log -o output_3d.html /path/to/binary
 ```
 
-This creates a 256×256×256 volume where each voxel `(x, y, z)` represents how often the 3-byte sequence `[x, y, z]` appears. The output is 256 PPM slice images (`output_3d_slice_000.ppm` through `output_3d_slice_255.ppm`), where each slice fixes the first byte and shows a 2D heatmap of the following two bytes.
+This creates an interactive HTML file with a 3D scatter plot where each point represents a byte triplet `[x, y, z]`. The visualization shows only triplets that actually occur in the file, making it easy to spot patterns.
 
 **Example:**
 ```bash
 # Visualize /bin/ls in 3D
-mkdir -p examples/3d_slices
-uv run visualize.py --mode 3d --scale log -o examples/3d_slices/ls.ppm /bin/ls
-# This creates examples/3d_slices/ls_slice_000.ppm through ls_slice_255.ppm
+uv run --with plotly visualize.py --mode 3d --scale log -o ls_3d.html /bin/ls
+# Open ls_3d.html in your browser
 ```
 
-**Viewing the slices:**
-- **Individual slices**: Open PPM files with any image viewer (ImageMagick, GIMP, etc.)
-- **As video**: Animate through slices using ffmpeg:
-  ```bash
-  ffmpeg -framerate 10 -pattern_type glob -i 'examples/3d_slices/ls_slice_*.ppm' \
-         -c:v libx264 -pix_fmt yuv420p examples/ls_3d.mp4
-  ```
-- **Convert to PNG**: Use ImageMagick for smaller files:
-  ```bash
-  mogrify -format png examples/3d_slices/*.ppm
-  ```
+**Features:**
+- **Interactive rotation**: Click and drag to rotate the 3D space
+- **Zoom**: Scroll to zoom in/out
+- **Hover details**: Hover over points to see:
+  - Exact byte triplet (in hex)
+  - Occurrence count
+  - Mapped brightness value
+- **Color coding**: Viridis colorscale from dark (rare) to bright (frequent)
+- **Sparse representation**: Only non-zero triplets are shown
 
 **Interpreting the output:**
-- **Slice 0x00**: All triplets starting with byte `0x00`
-- **Slice 0x7F**: All triplets starting with byte `0x7F` (often ASCII text)
-- **Bright regions**: Frequently occurring 3-byte sequences (e.g., common instructions, file headers)
-- **Sparse slices**: Rare first bytes in the file
+- **Clusters**: Dense regions indicate frequently co-occurring byte sequences
+- **Color**: Brighter yellow/green = more frequent triplets
+- **Distribution**: Spread shows variety of 3-byte patterns in the file
+- **Axis positions**:
+  - X-axis: First byte of triplet
+  - Y-axis: Second byte
+  - Z-axis: Third byte
 
 **Use cases:**
-- Detect longer instruction sequences in executables (x86 opcodes are often 2-3 bytes)
-- Visualize file format structures across 3-byte patterns
-- Analyze compression or encryption artifacts over triplets
-- Compare code patterns between different binaries
+- **Executable analysis**: Detect x86 instruction sequences (opcodes often 2-3 bytes)
+- **Format fingerprinting**: Identify file format structures by triplet clusters
+- **Compression detection**: Encrypted/compressed files show uniform distribution
+- **Pattern comparison**: Overlay multiple files to compare code patterns
+- **Malware analysis**: Identify unusual byte sequence patterns
 
 ## Batch processing and videos
 
