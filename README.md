@@ -26,6 +26,23 @@ Tone-mapping options:
 - `sqrt`: softer contrast.
 - `linear`: raw counts.
 
+## 3D Visualization
+
+Generate a 3D volume by scanning byte **triplets** instead of pairs:
+
+```bash
+make run INPUT=/path/to/binary OUTPUT=output_3d.ppm SCALE=log MODE=3d
+# or directly:
+uv run visualize.py --mode 3d --scale log -o output_3d.ppm /path/to/binary
+```
+
+This creates a 256×256×256 volume where each voxel `(x, y, z)` represents how often the 3-byte sequence `[x, y, z]` appears. The output is 256 PPM slice images (`output_3d_slice_000.ppm` through `output_3d_slice_255.ppm`), where each slice fixes the first byte and shows a 2D heatmap of the following two bytes.
+
+**Use cases:**
+- Detect longer instruction sequences in executables
+- Visualize file format structures across 3-byte patterns
+- Analyze compression or encryption artifacts over triplets
+
 ## Batch processing and videos
 
 You can turn a directory of binaries into a video of PPM frames, each frame labeled with the source filename:

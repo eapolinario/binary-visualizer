@@ -1,6 +1,7 @@
 INPUT ?=
 OUTPUT ?= output.ppm
 SCALE ?= log
+MODE ?= 2d
 PPM_DIR ?=
 PPM_VIDEO_OUTPUT ?=
 PPM_FRAMERATE ?= 4
@@ -12,10 +13,10 @@ BIN_JOBS ?= 0
 # Build a PPM for a single input binary.
 run:
 	@if [ -z "$(INPUT)" ]; then \
-		echo "Usage: make run INPUT=/path/to/binary [OUTPUT=output.ppm SCALE=log]"; \
+		echo "Usage: make run INPUT=/path/to/binary [OUTPUT=output.ppm SCALE=log MODE=2d]"; \
 		exit 1; \
 	fi
-	uv run visualize.py --scale $(SCALE) -o $(OUTPUT) $(INPUT)
+	uv run visualize.py --mode $(MODE) --scale $(SCALE) -o $(OUTPUT) $(INPUT)
 
 test:
 	PYTHONPATH=. uv run --with pytest pytest tests/test_visualize.py
@@ -62,5 +63,5 @@ bin-video:
 	fi
 	mkdir -p $(PPM_DIR)
 	find -L $(BIN_DIR) -readable -maxdepth 1 -type f -print0 | \
-		xargs -0 -P $(BIN_JOBS) -I{} sh -c 'name=$$(basename "$$1"); echo "Generating PPM for $$1"; $(MAKE) --no-print-directory run INPUT="$$1" OUTPUT="$(PPM_DIR)/$$name.ppm" SCALE=$(SCALE)' sh {}
+		xargs -0 -P $(BIN_JOBS) -I{} sh -c 'name=$$(basename "$$1"); echo "Generating PPM for $$1"; $(MAKE) --no-print-directory run INPUT="$$1" OUTPUT="$(PPM_DIR)/$$name.ppm" SCALE=$(SCALE) MODE=$(MODE)' sh {}
 	$(MAKE) --no-print-directory ppm-video PPM_DIR=$(PPM_DIR) PPM_VIDEO_OUTPUT=$(if $(PPM_VIDEO_OUTPUT),$(PPM_VIDEO_OUTPUT),$(abspath $(PPM_DIR))/output.mp4)
