@@ -16,8 +16,6 @@ Generate a single heatmap:
 
 ```bash
 make run INPUT=/path/to/binary OUTPUT=output.ppm SCALE=log
-# or directly:
-uv run visualize.py --scale log -o output.ppm /path/to/binary
 ```
 
 Tone-mapping options:
@@ -31,10 +29,7 @@ Tone-mapping options:
 Generate an **interactive 3D visualization** by scanning byte **triplets** instead of pairs:
 
 ```bash
-# Requires plotly: uv pip install plotly
 make run INPUT=/path/to/binary OUTPUT=output_3d.html SCALE=log MODE=3d
-# or directly:
-uv run --with plotly visualize.py --mode 3d --scale log -o output_3d.html /path/to/binary
 ```
 
 This creates an interactive HTML file with a 3D scatter plot where each point represents a byte triplet `[x, y, z]`. The visualization shows only triplets that actually occur in the file, making it easy to spot patterns.
@@ -42,9 +37,11 @@ This creates an interactive HTML file with a 3D scatter plot where each point re
 **Example:**
 ```bash
 # Visualize /bin/ls in 3D
-uv run --with plotly visualize.py --mode 3d --scale log -o ls_3d.html /bin/ls
+make run INPUT=/bin/ls OUTPUT=ls_3d.html SCALE=log MODE=3d
 # Open ls_3d.html in your browser
 ```
+
+**Note:** 3D mode requires Plotly. Install with `uv pip install plotly` if needed.
 
 **Features:**
 - **Interactive rotation**: Click and drag to rotate the 3D space
