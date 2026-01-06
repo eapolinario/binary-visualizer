@@ -38,10 +38,37 @@ uv run visualize.py --mode 3d --scale log -o output_3d.ppm /path/to/binary
 
 This creates a 256×256×256 volume where each voxel `(x, y, z)` represents how often the 3-byte sequence `[x, y, z]` appears. The output is 256 PPM slice images (`output_3d_slice_000.ppm` through `output_3d_slice_255.ppm`), where each slice fixes the first byte and shows a 2D heatmap of the following two bytes.
 
+**Example:**
+```bash
+# Visualize /bin/ls in 3D
+mkdir -p examples/3d_slices
+uv run visualize.py --mode 3d --scale log -o examples/3d_slices/ls.ppm /bin/ls
+# This creates examples/3d_slices/ls_slice_000.ppm through ls_slice_255.ppm
+```
+
+**Viewing the slices:**
+- **Individual slices**: Open PPM files with any image viewer (ImageMagick, GIMP, etc.)
+- **As video**: Animate through slices using ffmpeg:
+  ```bash
+  ffmpeg -framerate 10 -pattern_type glob -i 'examples/3d_slices/ls_slice_*.ppm' \
+         -c:v libx264 -pix_fmt yuv420p examples/ls_3d.mp4
+  ```
+- **Convert to PNG**: Use ImageMagick for smaller files:
+  ```bash
+  mogrify -format png examples/3d_slices/*.ppm
+  ```
+
+**Interpreting the output:**
+- **Slice 0x00**: All triplets starting with byte `0x00`
+- **Slice 0x7F**: All triplets starting with byte `0x7F` (often ASCII text)
+- **Bright regions**: Frequently occurring 3-byte sequences (e.g., common instructions, file headers)
+- **Sparse slices**: Rare first bytes in the file
+
 **Use cases:**
-- Detect longer instruction sequences in executables
+- Detect longer instruction sequences in executables (x86 opcodes are often 2-3 bytes)
 - Visualize file format structures across 3-byte patterns
 - Analyze compression or encryption artifacts over triplets
+- Compare code patterns between different binaries
 
 ## Batch processing and videos
 
