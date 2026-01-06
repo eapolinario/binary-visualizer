@@ -64,12 +64,8 @@ def test_write_plotly_3d(tmp_path: Path) -> None:
 
     output_path = tmp_path / "output_3d.html"
 
-    # Skip test if plotly is not available
-    try:
-        visualize.write_plotly_3d(counts, peak, output_path, "linear")
-    except ImportError:
-        # Plotly not installed, skip this test
-        return
+    # Plotly is now a required dependency, so this should not raise ImportError
+    visualize.write_plotly_3d(counts, peak, output_path, "linear")
 
     # Check that HTML file was created
     assert output_path.exists()
@@ -79,3 +75,39 @@ def test_write_plotly_3d(tmp_path: Path) -> None:
     assert "<html>" in content.lower()
     assert "plotly" in content.lower()
     assert "3D Byte Triplet Visualization" in content
+
+
+def test_3d_mode_integration(tmp_path: Path) -> None:
+    """Integration test for full 3D mode execution via main()."""
+    import sys
+    from unittest.mock import patch
+
+    # Create test binary data
+    data = bytes([5, 10, 15, 20, 25, 30, 35, 40])
+    input_file = tmp_path / "test_binary.bin"
+    input_file.write_bytes(data)
+
+    output_file = tmp_path / "test_3d_output.ppm"
+
+    # Mock sys.argv to simulate command line arguments
+    test_args = [
+        "visualize.py",
+        str(input_file),
+        "--mode", "3d",
+        "--scale", "linear",
+        "-o", str(output_file),
+    ]
+
+    with patch.object(sys, "argv", test_args):
+        visualize.main()
+
+    # The output should be an HTML file (extension changes from .ppm to .html)
+    html_output = output_file.with_suffix(".html")
+    assert html_output.exists()
+
+    # Verify the HTML content
+    content = html_output.read_text()
+    assert "<html>" in content.lower()
+    assert "plotly" in content.lower()
+    assert "3D Byte Triplet Visualization" in content
+    assert "linear scale" in content.lower()

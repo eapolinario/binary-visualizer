@@ -19,7 +19,7 @@ run:
 	uv run visualize.py --mode $(MODE) --scale $(SCALE) -o $(OUTPUT) $(INPUT)
 
 test:
-	PYTHONPATH=. uv run --with pytest pytest tests/test_visualize.py
+	PYTHONPATH=. uv run --with pytest --with plotly pytest tests/test_visualize.py
 
 lint:
 	uv run ruff check
