@@ -178,7 +178,7 @@ def write_plotly_3d(
     if not PLOTLY_AVAILABLE:
         raise ImportError(
             "Plotly is required for 3D visualization. "
-            "Install it with: uv pip install plotly"
+            "Run this script with 'uv run' to automatically install dependencies."
         )
 
     # Extract non-zero triplets
