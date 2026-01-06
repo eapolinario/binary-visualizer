@@ -5,6 +5,11 @@ pair as coordinates on a 256x256 plane, and emits a grayscale PPM heatmap where
 more frequent pairs appear brighter. Counts are stored in a dictionary keyed by
 ``(x, y)`` pairs for direct lookups.
 """
+# /// script
+# dependencies = [
+#   "plotly",
+# ]
+# ///
 
 from __future__ import annotations
 
