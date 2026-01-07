@@ -1,3 +1,11 @@
+# /// script
+# dependencies = [
+#   "plotly",
+#   "pytest",
+#   "tqdm",
+# ]
+# ///
+
 from pathlib import Path
 
 import visualize
