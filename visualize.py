@@ -90,7 +90,7 @@ def scan_pairs(path: Path) -> GridCounts:
         # Memory map the file
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Scan all consecutive byte pairs
-            for i in tqdm(range(len(mm) - 1), desc="Scanning byte pairs", unit="bytes"):
+            for i in tqdm(range(len(mm) - 1), desc="Scanning byte pairs", unit="pairs"):
                 counts[(mm[i], mm[i + 1])] += 1
 
     return counts
@@ -114,7 +114,7 @@ def scan_triplets(path: Path) -> Grid3DCounts:
         # Memory map the file
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Scan all consecutive byte triplets
-            for i in tqdm(range(len(mm) - 2), desc="Scanning byte triplets", unit="bytes"):
+            for i in tqdm(range(len(mm) - 2), desc="Scanning byte triplets", unit="triplets"):
                 counts[(mm[i], mm[i + 1], mm[i + 2])] += 1
 
     return counts
