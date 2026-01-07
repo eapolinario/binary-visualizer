@@ -8,6 +8,7 @@ more frequent pairs appear brighter. Counts are stored in a dictionary keyed by
 # /// script
 # dependencies = [
 #   "plotly",
+#   "tqdm",
 # ]
 # ///
 
@@ -19,6 +20,8 @@ import mmap
 from collections import defaultdict
 from pathlib import Path
 from typing import DefaultDict, Tuple
+
+from tqdm import tqdm
 
 try:
     import plotly.graph_objects as go
@@ -87,7 +90,7 @@ def scan_pairs(path: Path) -> GridCounts:
         # Memory map the file
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Scan all consecutive byte pairs
-            for i in range(len(mm) - 1):
+            for i in tqdm(range(len(mm) - 1), desc="Scanning byte pairs", unit="bytes"):
                 counts[(mm[i], mm[i + 1])] += 1
 
     return counts
@@ -111,7 +114,7 @@ def scan_triplets(path: Path) -> Grid3DCounts:
         # Memory map the file
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Scan all consecutive byte triplets
-            for i in range(len(mm) - 2):
+            for i in tqdm(range(len(mm) - 2), desc="Scanning byte triplets", unit="bytes"):
                 counts[(mm[i], mm[i + 1], mm[i + 2])] += 1
 
     return counts
@@ -152,7 +155,7 @@ def write_ppm(counts: GridCounts, peak: int, output: Path, scale: str) -> None:
 
     with output.open("w", encoding="ascii") as handle:
         handle.write("P3\n256 256\n255\n")
-        for y in range(256):
+        for y in tqdm(range(256), desc="Writing PPM", unit="rows"):
             row_values = []
             for x in range(256):
                 count = counts.get((x, y), 0)
@@ -188,6 +191,7 @@ def write_plotly_3d(
     if total_triplets > max_points:
         print(f"Sampling {max_points:,} of {total_triplets:,} triplets for performance")
         # Sort by frequency (descending) to keep most significant patterns
+        print("Sorting triplets by frequency...")
         triplets.sort(key=lambda item: item[1], reverse=True)
         triplets = triplets[:max_points]
 
@@ -201,7 +205,7 @@ def write_plotly_3d(
     # Get the viridis colorscale
     viridis = plotly.colors.sequential.Viridis
 
-    for (x, y, z), count in triplets:
+    for (x, y, z), count in tqdm(triplets, desc="Processing triplets", unit="triplets"):
         x_coords.append(x)
         y_coords.append(y)
         z_coords.append(z)
