@@ -1,5 +1,6 @@
 INPUT ?=
 OUTPUT ?= output.ppm
+OUTPUT_DIR ?= .
 SCALE ?= log
 MODE ?= 2d
 BIN_DIR ?=
@@ -8,7 +9,7 @@ PPM_DIR ?=
 PPM_VIDEO_OUTPUT ?=
 PPM_FRAMERATE ?= 4
 
-.PHONY: run test lint ppm-video bin-ppm bin-video
+.PHONY: run run-3d test lint ppm-video bin-ppm bin-video
 
 # Build a PPM for a single input binary.
 run:
@@ -17,6 +18,18 @@ run:
 		exit 1; \
 	fi
 	uv run visualize.py --mode $(MODE) --scale $(SCALE) -o $(OUTPUT) $(INPUT)
+
+# Build a 3D HTML visualization for a single input binary.
+# Uses OUTPUT_DIR instead of OUTPUT, and derives filename from INPUT.
+run-3d:
+	@if [ -z "$(INPUT)" ]; then \
+		echo "Usage: make run-3d INPUT=/path/to/binary [OUTPUT_DIR=. SCALE=log]"; \
+		exit 1; \
+	fi
+	@mkdir -p $(OUTPUT_DIR)
+	@input_basename=$$(basename "$(INPUT)"); \
+	output_file="$(OUTPUT_DIR)/$${input_basename}.html"; \
+	uv run visualize.py --mode 3d --scale $(SCALE) -o "$$output_file" $(INPUT)
 
 test:
 	PYTHONPATH=. uv run --with pytest --with plotly pytest tests/test_visualize.py
