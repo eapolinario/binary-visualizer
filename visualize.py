@@ -186,6 +186,7 @@ def write_plotly_3d(
     y_coords = []
     z_coords = []
     values = []
+    opacities = []
     hover_text = []
 
     for (x, y, z), count in counts.items():
@@ -196,10 +197,15 @@ def write_plotly_3d(
             # Apply tone mapping to the count
             mapped_value = brightness(count, peak, scale)
             values.append(mapped_value)
+            # Calculate opacity based on frequency (0.2 to 1.0 range)
+            # More common points are more opaque
+            opacity = 0.2 + (mapped_value / 255) * 0.8
+            opacities.append(opacity)
             hover_text.append(
                 f"Triplet: [{x:02x}, {y:02x}, {z:02x}]<br>"
                 f"Count: {count}<br>"
-                f"Brightness: {mapped_value}/255"
+                f"Brightness: {mapped_value}/255<br>"
+                f"Opacity: {opacity:.2f}"
             )
 
     # Create 3D scatter plot
@@ -214,7 +220,7 @@ def write_plotly_3d(
             colorscale='Viridis',
             showscale=True,
             colorbar=dict(title="Frequency<br>(mapped)"),
-            opacity=0.8
+            opacity=opacities
         ),
         text=hover_text,
         hoverinfo='text'
