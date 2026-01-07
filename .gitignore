@@ -4,4 +4,5 @@ __pycache__/
 .ruff_cache/
 *.html
 *.ppm
+test_files/
 
