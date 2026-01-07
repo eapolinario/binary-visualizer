@@ -167,13 +167,16 @@ def write_ppm(counts: GridCounts, peak: int, output: Path, scale: str) -> None:
 
 
 def write_plotly_3d(
-    counts: Grid3DCounts, peak: int, output: Path, scale: str
+    counts: Grid3DCounts, peak: int, output: Path, scale: str, max_points: int = 100000
 ) -> None:
     """Write an interactive 3D Plotly visualization as HTML.
 
     Creates a 3D scatter plot where each point represents a byte triplet.
     Point size and color represent frequency (applying the selected tone mapping).
     Only non-zero triplets are displayed to keep the visualization manageable.
+
+    If there are more than max_points triplets, intelligently sample them,
+    prioritizing high-frequency triplets for better performance and visual quality.
     """
 
     if not PLOTLY_AVAILABLE:
@@ -183,6 +186,16 @@ def write_plotly_3d(
         )
 
     # Extract non-zero triplets
+    triplets = [(coords, count) for coords, count in counts.items() if count > 0]
+    total_triplets = len(triplets)
+
+    # Sample if needed to keep browser performance reasonable
+    if total_triplets > max_points:
+        print(f"Sampling {max_points:,} of {total_triplets:,} triplets for performance")
+        # Sort by frequency (descending) to keep most significant patterns
+        triplets.sort(key=lambda item: item[1], reverse=True)
+        triplets = triplets[:max_points]
+
     x_coords = []
     y_coords = []
     z_coords = []
@@ -193,36 +206,35 @@ def write_plotly_3d(
     # Get the viridis colorscale
     viridis = plotly.colors.sequential.Viridis
 
-    for (x, y, z), count in counts.items():
-        if count > 0:
-            x_coords.append(x)
-            y_coords.append(y)
-            z_coords.append(z)
-            # Apply tone mapping to the count
-            mapped_value = brightness(count, peak, scale)
-            values.append(mapped_value)
-            # Calculate opacity based on frequency (0.2 to 1.0 range)
-            # More common points are more opaque
-            opacity = 0.2 + (mapped_value / 255) * 0.8
+    for (x, y, z), count in triplets:
+        x_coords.append(x)
+        y_coords.append(y)
+        z_coords.append(z)
+        # Apply tone mapping to the count
+        mapped_value = brightness(count, peak, scale)
+        values.append(mapped_value)
+        # Calculate opacity based on frequency (0.2 to 1.0 range)
+        # More common points are more opaque
+        opacity = 0.2 + (mapped_value / 255) * 0.8
 
-            # Map the value to a viridis color and add alpha channel
-            # Normalize mapped_value to 0-1 range for colorscale lookup
-            norm_value = mapped_value / 255
-            # Get color from viridis scale
-            color_idx = int(norm_value * (len(viridis) - 1))
-            rgb_str = viridis[color_idx]
-            # Convert hex to RGB
-            rgb = plotly.colors.hex_to_rgb(rgb_str)
-            # Create RGBA string with variable alpha
-            rgba = f'rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {opacity})'
-            rgba_colors.append(rgba)
+        # Map the value to a viridis color and add alpha channel
+        # Normalize mapped_value to 0-1 range for colorscale lookup
+        norm_value = mapped_value / 255
+        # Get color from viridis scale
+        color_idx = int(norm_value * (len(viridis) - 1))
+        rgb_str = viridis[color_idx]
+        # Convert hex to RGB
+        rgb = plotly.colors.hex_to_rgb(rgb_str)
+        # Create RGBA string with variable alpha
+        rgba = f'rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {opacity})'
+        rgba_colors.append(rgba)
 
-            hover_text.append(
-                f"Triplet: [{x:02x}, {y:02x}, {z:02x}]<br>"
-                f"Count: {count}<br>"
-                f"Brightness: {mapped_value}/255<br>"
-                f"Opacity: {opacity:.2f}"
-            )
+        hover_text.append(
+            f"Triplet: [{x:02x}, {y:02x}, {z:02x}]<br>"
+            f"Count: {count}<br>"
+            f"Brightness: {mapped_value}/255<br>"
+            f"Opacity: {opacity:.2f}"
+        )
 
     # Create 3D scatter plot with RGBA colors for variable transparency
     main_trace = go.Scatter3d(
