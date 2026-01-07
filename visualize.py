@@ -187,6 +187,7 @@ def write_plotly_3d(
     y_coords = []
     z_coords = []
     rgba_colors = []
+    values = []  # Keep values for colorbar reference
     hover_text = []
 
     # Get the viridis colorscale
@@ -199,6 +200,7 @@ def write_plotly_3d(
             z_coords.append(z)
             # Apply tone mapping to the count
             mapped_value = brightness(count, peak, scale)
+            values.append(mapped_value)
             # Calculate opacity based on frequency (0.2 to 1.0 range)
             # More common points are more opaque
             opacity = 0.2 + (mapped_value / 255) * 0.8
@@ -222,8 +224,8 @@ def write_plotly_3d(
                 f"Opacity: {opacity:.2f}"
             )
 
-    # Create 3D scatter plot
-    fig = go.Figure(data=[go.Scatter3d(
+    # Create 3D scatter plot with RGBA colors for variable transparency
+    main_trace = go.Scatter3d(
         x=x_coords,
         y=y_coords,
         z=z_coords,
@@ -233,8 +235,35 @@ def write_plotly_3d(
             color=rgba_colors
         ),
         text=hover_text,
-        hoverinfo='text'
-    )])
+        hoverinfo='text',
+        name='Triplets'
+    )
+
+    # Add invisible trace for colorbar legend
+    # This shows the frequency scale without the transparency
+    colorbar_trace = go.Scatter3d(
+        x=[None],  # No actual points
+        y=[None],
+        z=[None],
+        mode='markers',
+        marker=dict(
+            size=3,
+            color=[0, 255],  # Min and max values
+            colorscale='Viridis',
+            showscale=True,
+            colorbar=dict(
+                title="Frequency<br>(mapped)",
+                tickvals=[0, 64, 128, 192, 255],
+                ticktext=['Low', '', 'Medium', '', 'High']
+            ),
+            cmin=0,
+            cmax=255
+        ),
+        showlegend=False,
+        hoverinfo='skip'
+    )
+
+    fig = go.Figure(data=[main_trace, colorbar_trace])
 
     fig.update_layout(
         title=f"3D Byte Triplet Visualization ({scale} scale)",
