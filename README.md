@@ -29,16 +29,16 @@ Tone-mapping options:
 Generate an **interactive 3D visualization** by scanning byte **triplets** instead of pairs:
 
 ```bash
-make run INPUT=/path/to/binary OUTPUT=output_3d.html SCALE=log MODE=3d
+make run-3d INPUT=/path/to/binary OUTPUT_DIR=. SCALE=log
 ```
 
-This creates an interactive HTML file with a 3D scatter plot where each point represents a byte triplet `[x, y, z]`. The visualization shows only triplets that actually occur in the file, making it easy to spot patterns.
+This creates an interactive HTML file with a 3D scatter plot where each point represents a byte triplet `[x, y, z]`. The visualization shows only triplets that actually occur in the file, making it easy to spot patterns. The output filename is automatically derived from the input filename.
 
 **Example:**
 ```bash
-# Visualize /bin/ls in 3D
-make run INPUT=/bin/ls OUTPUT=ls_3d.html SCALE=log MODE=3d
-# Open ls_3d.html in your browser
+# Visualize /bin/ls in 3D - creates ./ls.html
+make run-3d INPUT=/bin/ls OUTPUT_DIR=. SCALE=log
+# Open ls.html in your browser
 ```
 
 **Note:** 3D mode requires Plotly. Install with `uv pip install plotly` if needed.
