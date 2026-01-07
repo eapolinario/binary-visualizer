@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import mmap
 from collections import defaultdict
 from pathlib import Path
 from typing import DefaultDict, Tuple
@@ -69,55 +70,49 @@ def parse_args() -> argparse.Namespace:
 
 
 def scan_pairs(path: Path) -> GridCounts:
-    """Return a grid of pair frequencies keyed by ``(x, y)`` tuples."""
+    """Return a grid of pair frequencies keyed by ``(x, y)`` tuples.
+
+    Uses memory mapping for efficient sequential access without loading the
+    entire file into memory at once.
+    """
 
     counts: GridCounts = defaultdict(int)
+
+    # Get file size using stat
+    file_size = path.stat().st_size
+    if file_size == 0:
+        return counts
+
     with path.open("rb") as handle:
-        prev = None
-        while True:
-            chunk = handle.read(1024 * 1024 * 1024)  # 1 GiB chunks
-            if not chunk:
-                break
+        # Memory map the file
+        with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            # Scan all consecutive byte pairs
+            for i in range(len(mm) - 1):
+                counts[(mm[i], mm[i + 1])] += 1
 
-            if prev is not None:
-                counts[(prev, chunk[0])] += 1
-
-            for i in range(len(chunk) - 1):
-                counts[(chunk[i], chunk[i + 1])] += 1
-
-            prev = chunk[-1]
     return counts
 
 
 def scan_triplets(path: Path) -> Grid3DCounts:
-    """Return a 3D grid of triplet frequencies keyed by ``(x, y, z)`` tuples."""
+    """Return a 3D grid of triplet frequencies keyed by ``(x, y, z)`` tuples.
+
+    Uses memory mapping for efficient sequential access without loading the
+    entire file into memory at once.
+    """
 
     counts: Grid3DCounts = defaultdict(int)
+
+    # Get file size using stat
+    file_size = path.stat().st_size
+    if file_size < 3:
+        return counts
+
     with path.open("rb") as handle:
-        prev1 = None
-        prev2 = None
-        while True:
-            chunk = handle.read(1024 * 1024 * 1024)  # 1 GiB chunks
-            if not chunk:
-                break
-
-            # Handle boundary between chunks
-            if prev1 is not None and prev2 is not None and len(chunk) >= 1:
-                counts[(prev1, prev2, chunk[0])] += 1
-            if prev2 is not None and len(chunk) >= 2:
-                counts[(prev2, chunk[0], chunk[1])] += 1
-
-            # Scan triplets within the chunk
-            for i in range(len(chunk) - 2):
-                counts[(chunk[i], chunk[i + 1], chunk[i + 2])] += 1
-
-            # Keep last two bytes for next chunk
-            if len(chunk) >= 2:
-                prev1 = chunk[-2]
-                prev2 = chunk[-1]
-            elif len(chunk) == 1:
-                prev1 = prev2
-                prev2 = chunk[0]
+        # Memory map the file
+        with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            # Scan all consecutive byte triplets
+            for i in range(len(mm) - 2):
+                counts[(mm[i], mm[i + 1], mm[i + 2])] += 1
 
     return counts
 
