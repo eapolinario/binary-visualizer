@@ -5,6 +5,11 @@ pair as coordinates on a 256x256 plane, and emits a grayscale PPM heatmap where
 more frequent pairs appear brighter. Counts are stored in a dictionary keyed by
 ``(x, y)`` pairs for direct lookups.
 """
+# /// script
+# dependencies = [
+#   "plotly",
+# ]
+# ///
 
 from __future__ import annotations
 
@@ -173,7 +178,7 @@ def write_plotly_3d(
     if not PLOTLY_AVAILABLE:
         raise ImportError(
             "Plotly is required for 3D visualization. "
-            "Install it with: uv pip install plotly"
+            "Run this script with 'uv run' to automatically install dependencies."
         )
 
     # Extract non-zero triplets
