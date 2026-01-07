@@ -32,7 +32,7 @@ run-3d:
 	uv run visualize.py --mode 3d --scale $(SCALE) -o "$$output_file" $(INPUT)
 
 test:
-	PYTHONPATH=. uv run --with pytest --with plotly pytest tests/test_visualize.py
+	PYTHONPATH=. uv run --with pytest --with plotly --with tqdm pytest tests/test_visualize.py
 
 lint:
 	uv run ruff check
