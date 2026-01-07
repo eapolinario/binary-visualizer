@@ -78,15 +78,12 @@ def scan_pairs(path: Path) -> GridCounts:
 
     counts: GridCounts = defaultdict(int)
 
+    # Get file size using stat
+    file_size = path.stat().st_size
+    if file_size == 0:
+        return counts
+
     with path.open("rb") as handle:
-        # Get file size
-        handle.seek(0, 2)  # Seek to end
-        file_size = handle.tell()
-        handle.seek(0)  # Reset to beginning
-
-        if file_size == 0:
-            return counts
-
         # Memory map the file
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Scan all consecutive byte pairs
@@ -105,15 +102,12 @@ def scan_triplets(path: Path) -> Grid3DCounts:
 
     counts: Grid3DCounts = defaultdict(int)
 
+    # Get file size using stat
+    file_size = path.stat().st_size
+    if file_size < 3:
+        return counts
+
     with path.open("rb") as handle:
-        # Get file size
-        handle.seek(0, 2)  # Seek to end
-        file_size = handle.tell()
-        handle.seek(0)  # Reset to beginning
-
-        if file_size < 3:
-            return counts
-
         # Memory map the file
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Scan all consecutive byte triplets
