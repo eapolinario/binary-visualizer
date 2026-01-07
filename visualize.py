@@ -21,6 +21,7 @@ from typing import DefaultDict, Tuple
 
 try:
     import plotly.graph_objects as go
+    import plotly.colors
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
@@ -185,8 +186,11 @@ def write_plotly_3d(
     x_coords = []
     y_coords = []
     z_coords = []
-    values = []
+    rgba_colors = []
     hover_text = []
+
+    # Get the viridis colorscale
+    viridis = plotly.colors.sequential.Viridis
 
     for (x, y, z), count in counts.items():
         if count > 0:
@@ -195,11 +199,27 @@ def write_plotly_3d(
             z_coords.append(z)
             # Apply tone mapping to the count
             mapped_value = brightness(count, peak, scale)
-            values.append(mapped_value)
+            # Calculate opacity based on frequency (0.2 to 1.0 range)
+            # More common points are more opaque
+            opacity = 0.2 + (mapped_value / 255) * 0.8
+
+            # Map the value to a viridis color and add alpha channel
+            # Normalize mapped_value to 0-1 range for colorscale lookup
+            norm_value = mapped_value / 255
+            # Get color from viridis scale
+            color_idx = int(norm_value * (len(viridis) - 1))
+            rgb_str = viridis[color_idx]
+            # Convert hex to RGB
+            rgb = plotly.colors.hex_to_rgb(rgb_str)
+            # Create RGBA string with variable alpha
+            rgba = f'rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {opacity})'
+            rgba_colors.append(rgba)
+
             hover_text.append(
                 f"Triplet: [{x:02x}, {y:02x}, {z:02x}]<br>"
                 f"Count: {count}<br>"
-                f"Brightness: {mapped_value}/255"
+                f"Brightness: {mapped_value}/255<br>"
+                f"Opacity: {opacity:.2f}"
             )
 
     # Create 3D scatter plot
@@ -210,11 +230,7 @@ def write_plotly_3d(
         mode='markers',
         marker=dict(
             size=3,
-            color=values,
-            colorscale='Viridis',
-            showscale=True,
-            colorbar=dict(title="Frequency<br>(mapped)"),
-            opacity=0.8
+            color=rgba_colors
         ),
         text=hover_text,
         hoverinfo='text'
