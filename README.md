@@ -77,3 +77,37 @@ Generate PPM frames for every file in a directory:
 make bin-ppm BIN_DIR=/path/to/bin_dir PPM_DIR=/tmp/ppm_frames SCALE=log BIN_JOBS=4
 ```
 
+Parameters:
+- `BIN_DIR`: Directory containing binary files to process (required)
+- `PPM_DIR`: Output directory for generated PPM files (required)
+- `SCALE`: Tone-mapping mode (`log`, `sqrt`, or `linear`, default: `log`)
+- `BIN_JOBS`: Number of parallel jobs (default: `0` = sequential)
+- `MODE`: Visualization mode (`2d` or `3d`, default: `2d`)
+
+**Note:** When using `MODE=3d`, output files will be `.html` instead of `.ppm`.
+
+## Video generation
+
+Convert a directory of PPM files into an MP4 video with labeled frames:
+
+```bash
+make ppm-video PPM_DIR=/tmp/ppm_frames PPM_VIDEO_OUTPUT=/tmp/output.mp4 PPM_FRAMERATE=4
+```
+
+Parameters:
+- `PPM_DIR`: Directory containing `.ppm` files (required)
+- `PPM_VIDEO_OUTPUT`: Full path to output MP4 file (required)
+- `PPM_FRAMERATE`: Frames per second (default: `4`)
+
+**Requirements:** `ffmpeg` must be installed.
+
+## All-in-one: Batch processing + video
+
+Generate PPM frames for all binaries in a directory and assemble them into a video:
+
+```bash
+make bin-video BIN_DIR=/bin PPM_DIR=/tmp/ppm_frames PPM_VIDEO_OUTPUT=/tmp/binaries.mp4 SCALE=log BIN_JOBS=4
+```
+
+This is equivalent to running `bin-ppm` followed by `ppm-video`. Accepts all parameters from both targets.
+
