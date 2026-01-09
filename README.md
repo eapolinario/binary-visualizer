@@ -24,6 +24,14 @@ Tone-mapping options:
 - `sqrt`: softer contrast.
 - `linear`: raw counts.
 
+## Examples Gallery
+
+View interactive 3D visualizations of 630+ x86_64 Linux binaries:
+
+**[Browse Examples Gallery →](https://eapolinario.github.io/binary-visualizer/)**
+
+The gallery includes visualizations of common system binaries, showing byte triplet patterns in 3D space. Use the search feature to find specific binaries like `python`, `gcc`, `vim`, and more.
+
 ## 3D Visualization
 
 Generate an **interactive 3D visualization** by scanning byte **triplets** instead of pairs:

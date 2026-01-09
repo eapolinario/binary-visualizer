@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Binary Visualizer - Examples Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .repo-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .repo-link:hover {
+            background: #764ba2;
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #search {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        #search:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .count {
+            font-size: 1.1em;
+            color: #667eea;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .card-filename {
+            font-size: 0.85em;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .videos-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .videos-section h2 {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+
+        .video-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .video-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .no-results {
+            background: white;
+            border-radius: 12px;
+            padding: 60px;
+            text-align: center;
+            color: #999;
+            font-size: 1.2em;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 50px;
+            padding: 20px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Binary Visualizer Gallery</h1>
+            <p>Interactive 3D visualizations of x86_64 Linux binaries</p>
+            <a href="https://github.com/eapolinario/binary-visualizer" class="repo-link" target="_blank">View on GitHub →</a>
+        </header>
+
+        <div class="search-section">
+            <div class="search-bar">
+                <input type="text" id="search" placeholder="Search binaries (e.g., 'python', 'git', 'gcc')..." autocomplete="off">
+                <span class="count" id="count">Loading...</span>
+            </div>
+        </div>
+
+        <div id="visualizations" class="grid"></div>
+
+        <div class="videos-section">
+            <h2>Video Collections</h2>
+            <div class="video-grid">
+                <div class="video-card">
+                    <h3>Linux AMD64 Binaries</h3>
+                    <video controls>
+                        <source src="linux-amd64-binaries.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="video-card">
+                    <h3>LLM Models</h3>
+                    <video controls>
+                        <source src="llm-models.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated with <a href="https://github.com/eapolinario/binary-visualizer" style="color: white; text-decoration: underline;">Binary Visualizer</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // All visualization files
+        const files = [
+        "a52dec-x86_64-linux.html",
+        "aainfo-x86_64-linux.html",
+        "abw2html-x86_64-linux.html",
+        "afl_persistent_config-x86_64-linux.html",
+        "afl_showmap-x86_64-linux.html",
+        "afl_tmin-x86_64-linux.html",
+        "alacritty-x86_64-linux.html",
+        "amrnb_dec-x86_64-linux.html",
+        "amrnb_enc-x86_64-linux.html",
+        "annotate-x86_64-linux.html",
+        "aomdec-x86_64-linux.html",
+        "aomenc-x86_64-linux.html",
+        "argon2-x86_64-linux.html",
+        "asciitopgm-x86_64-linux.html",
+        "aserver-x86_64-linux.html",
+        "auditctl-x86_64-linux.html",
+        "aulast-x86_64-linux.html",
+        "ausyscall-x86_64-linux.html",
+        "autoscan-x86_64-linux.html",
+        "avahi_discover_standalone-x86_64-linux.html",
+        "avahi_discover-x86_64-linux.html",
+        "avahi_publish-x86_64-linux.html",
+        "avifgainmaputil-x86_64-linux.html",
+        "avstopam-x86_64-linux.html",
+        "basename-x86_64-linux.html",
+        "bd_info-x86_64-linux.html",
+        "bd_splice-x86_64-linux.html",
+        "bjoentegaard-x86_64-linux.html",
+        "blkdiscard-x86_64-linux.html",
+        "blkid-x86_64-linux.html",
+        "blkpr-x86_64-linux.html",
+        "blockdev-x86_64-linux.html",
+        "bluetui-x86_64-linux.html",
+        "brotli-x86_64-linux.html",
+        "bsdcat-x86_64-linux.html",
+        "bsdtar-x86_64-linux.html",
+        "bsdunzip-x86_64-linux.html",
+        "btrfs_convert-x86_64-linux.html",
+        "busctl-x86_64-linux.html",
+        "bzdiff-x86_64-linux.html",
+        "bzgrep-x86_64-linux.html",
+        "bzip2recover-x86_64-linux.html",
+        "bzz-x86_64-linux.html",
+        "c89_14-x86_64-linux.html",
+        "c99-x86_64-linux.html",
+        "cacademo-x86_64-linux.html",
+        "cacaserver-x86_64-linux.html",
+        "canberra_boot-x86_64-linux.html",
+        "captest-x86_64-linux.html",
+        "cargo_fmt-x86_64-linux.html",
+        "cdr2raw-x86_64-linux.html",
+        "cd_read-x86_64-linux.html",
+        "cec_ctl-x86_64-linux.html",
+        "chattr-x86_64-linux.html",
+        "checkupdates-x86_64-linux.html",
+        "chmod-x86_64-linux.html",
+        "chroot-x86_64-linux.html",
+        "cjxl-x86_64-linux.html",
+        "clang_offload_packager-x86_64-linux.html",
+        "clang_scan_deps-x86_64-linux.html",
+        "clblast_tuner_transpose_fast-x86_64-linux.html",
+        "clblast_tuner_xgemm-x86_64-linux.html",
+        "cllayerinfo-x86_64-linux.html",
+        "cmp-x86_64-linux.html",
+        "cmsutil-x86_64-linux.html",
+        "code-x86_64-linux.html",
+        "combine_lang_model-x86_64-linux.html",
+        "combine_tessdata-x86_64-linux.html",
+        "containerd_shim_runc_v2-x86_64-linux.html",
+        "convertfilestops-x86_64-linux.html",
+        "createfp-x86_64-linux.html",
+        "cvt-x86_64-linux.html",
+        "dbdump-x86_64-linux.html",
+        "dbhash-x86_64-linux.html",
+        "db_hotbackup-x86_64-linux.html",
+        "db_printlog-x86_64-linux.html",
+        "db_stat-x86_64-linux.html",
+        "dbus_broker-x86_64-linux.html",
+        "dbus_daemon-x86_64-linux.html",
+        "dbus_test_tool-x86_64-linux.html",
+        "dbus_uuidgen-x86_64-linux.html",
+        "ddns_confgen-x86_64-linux.html",
+        "delpart-x86_64-linux.html",
+        "desktop_file_install-x86_64-linux.html",
+        "df-x86_64-linux.html",
+        "di_edid_decode-x86_64-linux.html",
+        "diffimg-x86_64-linux.html",
+        "dirname-x86_64-linux.html",
+        "djvmcvt-x86_64-linux.html",
+        "djvuextract-x86_64-linux.html",
+        "djvups-x86_64-linux.html",
+        "docker_init-x86_64-linux.html",
+        "dot_sandbox-x86_64-linux.html",
+        "dot-x86_64-linux.html",
+        "dropuser-x86_64-linux.html",
+        "dulwich-x86_64-linux.html",
+        "dumpiso-x86_64-linux.html",
+        "echo-x86_64-linux.html",
+        "editcap-x86_64-linux.html",
+        "efibootdump-x86_64-linux.html",
+        "efisecdb-x86_64-linux.html",
+        "einfo-x86_64-linux.html",
+        "emacs-x86_64-linux.html",
+        "enc2xs-x86_64-linux.html",
+        "enchant_2-x86_64-linux.html",
+        "enchant_lsmod_2-x86_64-linux.html",
+        "escp2topbm-x86_64-linux.html",
+        "exfatlabel-x86_64-linux.html",
+        "exrmultipart-x86_64-linux.html",
+        "exrmultiview-x86_64-linux.html",
+        "exrstdattr-x86_64-linux.html",
+        "extract_dts-x86_64-linux.html",
+        "extract_mpeg2-x86_64-linux.html",
+        "eyuvtoppm-x86_64-linux.html",
+        "faked-x86_64-linux.html",
+        "fancontrol-x86_64-linux.html",
+        "fc_conflist-x86_64-linux.html",
+        "fcitx5_gtk4_immodule_probing-x86_64-linux.html",
+        "fcitx5_qt5_immodule_probing-x86_64-linux.html",
+        "fcitx5_remote-x86_64-linux.html",
+        "fd-x86_64-linux.html",
+        "FileCheck-x86_64-linux.html",
+        "fileinfo-x86_64-linux.html",
+        "find_debuginfo-x86_64-linux.html",
+        "findssl.sh-x86_64-linux.html",
+        "find-x86_64-linux.html",
+        "fixqt4headers.pl-x86_64-linux.html",
+        "flock-x86_64-linux.html",
+        "fmt-x86_64-linux.html",
+        "freeaptxdec-x86_64-linux.html",
+        "fsck.exfat-x86_64-linux.html",
+        "fsck.ext4-x86_64-linux.html",
+        "fstopgm-x86_64-linux.html",
+        "fwupd_dbxtool-x86_64-linux.html",
+        "g3topbm-x86_64-linux.html",
+        "gapplication-x86_64-linux.html",
+        "gawk_5.3.2-x86_64-linux.html",
+        "gcc_nm-x86_64-linux.html",
+        "gd2copypal-x86_64-linux.html",
+        "gd2topng-x86_64-linux.html",
+        "gdk_pixbuf_query_loaders-x86_64-linux.html",
+        "gegl_imgcmp-x86_64-linux.html",
+        "gennorm2-x86_64-linux.html",
+        "getcifsacl-x86_64-linux.html",
+        "getkeycodes-x86_64-linux.html",
+        "gif2rgb-x86_64-linux.html",
+        "gimp_console_3.0-x86_64-linux.html",
+        "gimp_script_fu_interpreter_3.0-x86_64-linux.html",
+        "gimptool_3.0-x86_64-linux.html",
+        "gio_querymodules-x86_64-linux.html",
+        "git_crypt-x86_64-linux.html",
+        "git_filter_repo-x86_64-linux.html",
+        "gjs_console-x86_64-linux.html",
+        "glib_compile_resources-x86_64-linux.html",
+        "glslc-x86_64-linux.html",
+        "glycin_thumbnailer-x86_64-linux.html",
+        "gnome_calculator-x86_64-linux.html",
+        "gobject_query-x86_64-linux.html",
+        "gpgsm-x86_64-linux.html",
+        "gpgtar-x86_64-linux.html",
+        "gpg_wks_server-x86_64-linux.html",
+        "gps2udp-x86_64-linux.html",
+        "gpssnmp-x86_64-linux.html",
+        "gpssubframe-x86_64-linux.html",
+        "grap2graph-x86_64-linux.html",
+        "grn-x86_64-linux.html",
+        "grodvi-x86_64-linux.html",
+        "groff-x86_64-linux.html",
+        "grolj4-x86_64-linux.html",
+        "gropdf-x86_64-linux.html",
+        "grotty-x86_64-linux.html",
+        "groups-x86_64-linux.html",
+        "grpconv-x86_64-linux.html",
+        "gsdj-x86_64-linux.html",
+        "gslp-x86_64-linux.html",
+        "gsr_kms_server-x86_64-linux.html",
+        "gtk4_image_tool-x86_64-linux.html",
+        "gtk4_layer_demo-x86_64-linux.html",
+        "gtk_builder_tool-x86_64-linux.html",
+        "gunzip-x86_64-linux.html",
+        "gupnp_binding_tool_1.6-x86_64-linux.html",
+        "gvmap.sh-x86_64-linux.html",
+        "gvpack-x86_64-linux.html",
+        "heif_info-x86_64-linux.html",
+        "heif_view-x86_64-linux.html",
+        "hltest-x86_64-linux.html",
+        "hostname-x86_64-linux.html",
+        "host-x86_64-linux.html",
+        "hunzip-x86_64-linux.html",
+        "hwloc_bind-x86_64-linux.html",
+        "hwloc_gather_cpuid-x86_64-linux.html",
+        "hwloc_ps-x86_64-linux.html",
+        "hyprctl-x86_64-linux.html",
+        "hyprland_preview_share_picker-x86_64-linux.html",
+        "hyprland_update_screen-x86_64-linux.html",
+        "hyprlock-x86_64-linux.html",
+        "hyprshot-x86_64-linux.html",
+        "hyprwayland_scanner-x86_64-linux.html",
+        "icu_config_32-x86_64-linux.html",
+        "icu_config-x86_64-linux.html",
+        "icuexportdata-x86_64-linux.html",
+        "ideviceimagemounter-x86_64-linux.html",
+        "idevicesetlocation-x86_64-linux.html",
+        "ifstat-x86_64-linux.html",
+        "ijs_client_example-x86_64-linux.html",
+        "ijs_config-x86_64-linux.html",
+        "imagetops-x86_64-linux.html",
+        "img2sixel-x86_64-linux.html",
+        "imlib2_view-x86_64-linux.html",
+        "imv_dir-x86_64-linux.html",
+        "indxbib-x86_64-linux.html",
+        "info-x86_64-linux.html",
+        "install-x86_64-linux.html",
+        "irdb_get-x86_64-linux.html",
+        "ir_keytable-x86_64-linux.html",
+        "irrecord-x86_64-linux.html",
+        "irsimreceive-x86_64-linux.html",
+        "iso_read-x86_64-linux.html",
+        "ispellaff2myspell-x86_64-linux.html",
+        "iwmon-x86_64-linux.html",
+        "jbig2dec-x86_64-linux.html",
+        "jbigtopnm-x86_64-linux.html",
+        "jiv-x86_64-linux.html",
+        "journalctl-x86_64-linux.html",
+        "jpegtran-x86_64-linux.html",
+        "json2yaml-x86_64-linux.html",
+        "kpackagetool6-x86_64-linux.html",
+        "krb5_config-x86_64-linux.html",
+        "kreadconfig6-x86_64-linux.html",
+        "kvno-x86_64-linux.html",
+        "lame-x86_64-linux.html",
+        "lc_x509_generator-x86_64-linux.html",
+        "ld64.lld-x86_64-linux.html",
+        "ldconfig-x86_64-linux.html",
+        "ld.gold-x86_64-linux.html",
+        "ld.lld-x86_64-linux.html",
+        "less-x86_64-linux.html",
+        "libnet_config-x86_64-linux.html",
+        "libtool_next_version-x86_64-linux.html",
+        "limine_reset_enroll-x86_64-linux.html",
+        "lirc_lsremotes-x86_64-linux.html",
+        "lircrcd-x86_64-linux.html",
+        "lit2epub-x86_64-linux.html",
+        "lld_link-x86_64-linux.html",
+        "lli_child_target-x86_64-linux.html",
+        "llvm_cfi_verify-x86_64-linux.html",
+        "llvm_config-x86_64-linux.html",
+        "llvm_c_test-x86_64-linux.html",
+        "llvm_ctxprof_util-x86_64-linux.html",
+        "llvm_dwarfdump-x86_64-linux.html",
+        "llvm_gsymutil-x86_64-linux.html",
+        "llvm_jitlink_executor-x86_64-linux.html",
+        "llvm_mca-x86_64-linux.html",
+        "llvm_remarkutil-x86_64-linux.html",
+        "llvm_size-x86_64-linux.html",
+        "llvm_stress-x86_64-linux.html",
+        "llvm_tli_checker-x86_64-linux.html",
+        "llvm_undname-x86_64-linux.html",
+        "lnstat-x86_64-linux.html",
+        "local_lat-x86_64-linux.html",
+        "localsearch-x86_64-linux.html",
+        "loffice-x86_64-linux.html",
+        "login-x86_64-linux.html",
+        "logsave-x86_64-linux.html",
+        "lomath-x86_64-linux.html",
+        "lookbib-x86_64-linux.html",
+        "lowdown_diff-x86_64-linux.html",
+        "lprm-x86_64-linux.html",
+        "lsb_release-x86_64-linux.html",
+        "lsmem-x86_64-linux.html",
+        "ls-x86_64-linux.html",
+        "luac5.3-x86_64-linux.html",
+        "luac-x86_64-linux.html",
+        "lzmainfo-x86_64-linux.html",
+        "m17n_conv-x86_64-linux.html",
+        "Magick++_config-x86_64-linux.html",
+        "maim-x86_64-linux.html",
+        "markdown_it-x86_64-linux.html",
+        "mbedtls_cert_req-x86_64-linux.html",
+        "mbedtls_dh_genprime-x86_64-linux.html",
+        "mbedtls_dh_server-x86_64-linux.html",
+        "mbedtls_dtls_client-x86_64-linux.html",
+        "mbedtls_ecdh_curve25519-x86_64-linux.html",
+        "mbedtls_key_ladder_demo.sh-x86_64-linux.html",
+        "mbedtls_metatest-x86_64-linux.html",
+        "mbedtls_pk_encrypt-x86_64-linux.html",
+        "mbedtls_query_compile_time_config-x86_64-linux.html",
+        "mbedtls_ssl_server2-x86_64-linux.html",
+        "mbedtls_zeroize-x86_64-linux.html",
+        "mdatopbm-x86_64-linux.html",
+        "mdb_stat-x86_64-linux.html",
+        "memhog-x86_64-linux.html",
+        "mesg-x86_64-linux.html",
+        "mgrtopbm-x86_64-linux.html",
+        "migspeed-x86_64-linux.html",
+        "mkfs.btrfs-x86_64-linux.html",
+        "mkfs.exfat-x86_64-linux.html",
+        "mkfs.ext2-x86_64-linux.html",
+        "mkfs-x86_64-linux.html",
+        "mkhomedir_helper-x86_64-linux.html",
+        "mkinitcpio-x86_64-linux.html",
+        "mknod-x86_64-linux.html",
+        "mktemp-x86_64-linux.html",
+        "mmdbresolve-x86_64-linux.html",
+        "modeprint-x86_64-linux.html",
+        "more-x86_64-linux.html",
+        "mount.fuse-x86_64-linux.html",
+        "mount-x86_64-linux.html",
+        "mouse_dpi_tool-x86_64-linux.html",
+        "mpg123_id3dump-x86_64-linux.html",
+        "mqtt5_canary-x86_64-linux.html",
+        "msgconv-x86_64-linux.html",
+        "msgen-x86_64-linux.html",
+        "msgfilter-x86_64-linux.html",
+        "msgunfmt-x86_64-linux.html",
+        "mtp_albumart-x86_64-linux.html",
+        "mtp_albums-x86_64-linux.html",
+        "mtp_connect-x86_64-linux.html",
+        "mtp_tracks-x86_64-linux.html",
+        "mtp_trexist-x86_64-linux.html",
+        "mujs_pp-x86_64-linux.html",
+        "mupdf_x11_curl-x86_64-linux.html",
+        "mutool-x86_64-linux.html",
+        "named_checkconf-x86_64-linux.html",
+        "named_checkzone-x86_64-linux.html",
+        "named_nzd2nzf-x86_64-linux.html",
+        "netshaper-x86_64-linux.html",
+        "nettle_lfib_stream-x86_64-linux.html",
+        "newusers-x86_64-linux.html",
+        "nf_ct_list-x86_64-linux.html",
+        "nft-x86_64-linux.html",
+        "nice-x86_64-linux.html",
+        "nl_classid_lookup-x86_64-linux.html",
+        "nl_link_enslave-x86_64-linux.html",
+        "nl_monitor-x86_64-linux.html",
+        "nl_qdisc_delete-x86_64-linux.html",
+        "nl_tctree_list-x86_64-linux.html",
+        "nohup-x86_64-linux.html",
+        "nsenter-x86_64-linux.html",
+        "numastat-x86_64-linux.html",
+        "numbers2csv-x86_64-linux.html",
+        "nu_plugin_inc-x86_64-linux.html",
+        "nvidia_persistenced-x86_64-linux.html",
+        "nvim-x86_64-linux.html",
+        "objdump-x86_64-linux.html",
+        "oomctl-x86_64-linux.html",
+        "openvt-x86_64-linux.html",
+        "orcus_csv-x86_64-linux.html",
+        "orcus_json-x86_64-linux.html",
+        "orcus_ods-x86_64-linux.html",
+        "orcus_xls_xml-x86_64-linux.html",
+        "osinfo_query-x86_64-linux.html",
+        "otfview-x86_64-linux.html",
+        "otioconvert-x86_64-linux.html",
+        "p11_kit-x86_64-linux.html",
+        "paccache-x86_64-linux.html",
+        "pacdiff-x86_64-linux.html",
+        "pacsort-x86_64-linux.html",
+        "pactl-x86_64-linux.html",
+        "pages2html-x86_64-linux.html",
+        "pamaddnoise-x86_64-linux.html",
+        "pamdice-x86_64-linux.html",
+        "pamenlarge-x86_64-linux.html",
+        "pamfile-x86_64-linux.html",
+        "pamlevels-x86_64-linux.html",
+        "pam_namespace_helper-x86_64-linux.html",
+        "pamperspective-x86_64-linux.html",
+        "pampick-x86_64-linux.html",
+        "pamsistoaglyph-x86_64-linux.html",
+        "pamtable-x86_64-linux.html",
+        "pamtoavs-x86_64-linux.html",
+        "pamtofits-x86_64-linux.html",
+        "pamtohtmltbl-x86_64-linux.html",
+        "pamtompfont-x86_64-linux.html",
+        "pamtooctaveimg-x86_64-linux.html",
+        "pamtopng-x86_64-linux.html",
+        "pamtopnm-x86_64-linux.html",
+        "pamvalidate-x86_64-linux.html",
+        "panelctl-x86_64-linux.html",
+        "paper-x86_64-linux.html",
+        "paste-x86_64-linux.html",
+        "pbmtogo-x86_64-linux.html",
+        "pbmtoln03-x86_64-linux.html",
+        "pbmtopk-x86_64-linux.html",
+        "pbmtowbmp-x86_64-linux.html",
+        "pcilmr-x86_64-linux.html",
+        "pcprofiledump-x86_64-linux.html",
+        "pcre2grep-x86_64-linux.html",
+        "pcre_config-x86_64-linux.html",
+        "pcregrep-x86_64-linux.html",
+        "pdbimgtopam-x86_64-linux.html",
+        "pdfattach-x86_64-linux.html",
+        "pdfimages-x86_64-linux.html",
+        "pdfmom-x86_64-linux.html",
+        "pdfseparate-x86_64-linux.html",
+        "pdftohtml-x86_64-linux.html",
+        "pdfunite-x86_64-linux.html",
+        "perldoc-x86_64-linux.html",
+        "perl-x86_64-linux.html",
+        "pfmtopam-x86_64-linux.html",
+        "pg_config-x86_64-linux.html",
+        "pgmdeshadow-x86_64-linux.html",
+        "pgmminkowski-x86_64-linux.html",
+        "pgmramp-x86_64-linux.html",
+        "pgmtolispm-x86_64-linux.html",
+        "pgmtopgm-x86_64-linux.html",
+        "pgrep-x86_64-linux.html",
+        "pic2graph-x86_64-linux.html",
+        "piconv-x86_64-linux.html",
+        "pidwait-x86_64-linux.html",
+        "pinentry_tty-x86_64-linux.html",
+        "pipesz-x86_64-linux.html",
+        "pipewire-x86_64-linux.html",
+        "pkcs1_conv-x86_64-linux.html",
+        "pkgconf-x86_64-linux.html",
+        "plugctl-x86_64-linux.html",
+        "plugreport-x86_64-linux.html",
+        "plymouth_set_default_theme-x86_64-linux.html",
+        "plymouth-x86_64-linux.html",
+        "pmap-x86_64-linux.html",
+        "pmd2svg-x86_64-linux.html",
+        "pngfix-x86_64-linux.html",
+        "pngtogd-x86_64-linux.html",
+        "pnm2png-x86_64-linux.html",
+        "pnmcolormap-x86_64-linux.html",
+        "pnmmercator-x86_64-linux.html",
+        "pnmmontage-x86_64-linux.html",
+        "pnmremap-x86_64-linux.html",
+        "pnmsmooth-x86_64-linux.html",
+        "pnmtosgi-x86_64-linux.html",
+        "pod2html-x86_64-linux.html",
+        "portablectl-x86_64-linux.html",
+        "ppdc-x86_64-linux.html",
+        "ppdpo-x86_64-linux.html",
+        "ppm2tiff-x86_64-linux.html",
+        "ppmforge-x86_64-linux.html",
+        "ppmglobe-x86_64-linux.html",
+        "ppmhist-x86_64-linux.html",
+        "ppmpat-x86_64-linux.html",
+        "ppmrainbow-x86_64-linux.html",
+        "ppmtogif-x86_64-linux.html",
+        "ppmtopcx-x86_64-linux.html",
+        "ppmtopuzz-x86_64-linux.html",
+        "ppmtorgb3-x86_64-linux.html",
+        "ppmtosixel-x86_64-linux.html",
+        "ppscheck-x86_64-linux.html",
+        "ppsh-x86_64-linux.html",
+        "pronto2lirc-x86_64-linux.html",
+        "protoc_gen_upb_33.1.0-x86_64-linux.html",
+        "proxy_thr-x86_64-linux.html",
+        "prtstat-x86_64-linux.html",
+        "prune-x86_64-linux.html",
+        "pr-x86_64-linux.html",
+        "psidtopgm-x86_64-linux.html",
+        "ptargrep-x86_64-linux.html",
+        "ptar-x86_64-linux.html",
+        "pw_cat-x86_64-linux.html",
+        "pw_container-x86_64-linux.html",
+        "pw_dot-x86_64-linux.html",
+        "pw_dump-x86_64-linux.html",
+        "pwunconv-x86_64-linux.html",
+        "pydoc3.13-x86_64-linux.html",
+        "pygmentize-x86_64-linux.html",
+        "pyproject_build-x86_64-linux.html",
+        "qdbuscpp2xml-x86_64-linux.html",
+        "qdbusxml2cpp-x86_64-linux.html",
+        "qmllint-x86_64-linux.html",
+        "qmlmin-x86_64-linux.html",
+        "qmlpreview-x86_64-linux.html",
+        "qmltestrunner-x86_64-linux.html",
+        "qmltyperegistrar-x86_64-linux.html",
+        "qt_faststart-x86_64-linux.html",
+        "qxp2svg-x86_64-linux.html",
+        "qxp2text-x86_64-linux.html",
+        "ranlib-x86_64-linux.html",
+        "rapper-x86_64-linux.html",
+        "rasttopnm-x86_64-linux.html",
+        "rcp-x86_64-linux.html",
+        "redland_config-x86_64-linux.html",
+        "redland_db_upgrade-x86_64-linux.html",
+        "reduce_chunk_list-x86_64-linux.html",
+        "refer-x86_64-linux.html",
+        "repo_add-x86_64-linux.html",
+        "resizecons-x86_64-linux.html",
+        "rgb3toppm-x86_64-linux.html",
+        "rsh-x86_64-linux.html",
+        "rst2html5-x86_64-linux.html",
+        "rst2html-x86_64-linux.html",
+        "rtmpdump-x86_64-linux.html",
+        "runuser-x86_64-linux.html",
+        "sbcenc-x86_64-linux.html",
+        "sccmap-x86_64-linux.html",
+        "sclient-x86_64-linux.html",
+        "scncopy-x86_64-linux.html",
+        "scp-x86_64-linux.html",
+        "script-x86_64-linux.html",
+        "sd2svg-x86_64-linux.html",
+        "sddm_greeter_qt6-x86_64-linux.html",
+        "secret_tool-x86_64-linux.html",
+        "sed-x86_64-linux.html",
+        "sendiso-x86_64-linux.html",
+        "sensord-x86_64-linux.html",
+        "setfattr-x86_64-linux.html",
+        "setfont-x86_64-linux.html",
+        "setlogcons-x86_64-linux.html",
+        "setpriv-x86_64-linux.html",
+        "set_unicharset_properties-x86_64-linux.html",
+        "setvesablank-x86_64-linux.html",
+        "sfdisk-x86_64-linux.html",
+        "sha384sum-x86_64-linux.html",
+        "sha512sum-x86_64-linux.html",
+        "shasum-x86_64-linux.html",
+        "showjournal-x86_64-linux.html",
+        "showstat4-x86_64-linux.html",
+        "shred-x86_64-linux.html",
+        "signon_ui-x86_64-linux.html",
+        "signver-x86_64-linux.html",
+        "simple_dcraw-x86_64-linux.html",
+        "sirtopnm-x86_64-linux.html",
+        "slurp-x86_64-linux.html",
+        "smbcquotas-x86_64-linux.html",
+        "smbget-x86_64-linux.html",
+        "smbtar-x86_64-linux.html",
+        "snapper-x86_64-linux.html",
+        "sndioctl-x86_64-linux.html",
+        "sordi-x86_64-linux.html",
+        "spa_monitor-x86_64-linux.html",
+        "spellout-x86_64-linux.html",
+        "spirv_cfg-x86_64-linux.html",
+        "spirv_lesspipe.sh-x86_64-linux.html",
+        "spirv_reduce-x86_64-linux.html",
+        "split_file-x86_64-linux.html",
+        "sqlite3_expert-x86_64-linux.html",
+        "sqlite3_rsync-x86_64-linux.html",
+        "srftopam-x86_64-linux.html",
+        "ssh-x86_64-linux.html",
+        "startx-x86_64-linux.html",
+        "stow-x86_64-linux.html",
+        "strace_log_merge-x86_64-linux.html",
+        "substrings.pl-x86_64-linux.html",
+        "sudo_logsrvd-x86_64-linux.html",
+        "sudo_sendlog-x86_64-linux.html",
+        "SvtAv1EncApp-x86_64-linux.html",
+        "swayosd_client-x86_64-linux.html",
+        "sync-x86_64-linux.html",
+        "system_config_printer-x86_64-linux.html",
+        "systemd_delta-x86_64-linux.html",
+        "systemd_detect_virt-x86_64-linux.html",
+        "systemd_mount-x86_64-linux.html",
+        "systemd_nspawn-x86_64-linux.html",
+        "systemd_socket_activate-x86_64-linux.html",
+        "tabs-x86_64-linux.html",
+        "tail-x86_64-linux.html",
+        "talkd-x86_64-linux.html",
+        "tcpdump-x86_64-linux.html",
+        "telnet-x86_64-linux.html",
+        "texi2pdf-x86_64-linux.html",
+        "thinkjettopbm-x86_64-linux.html",
+        "tic-x86_64-linux.html",
+        "tiff2pdf-x86_64-linux.html",
+        "tiffcmp-x86_64-linux.html",
+        "tiffcp-x86_64-linux.html",
+        "tiffdump-x86_64-linux.html",
+        "tiffgt-x86_64-linux.html",
+        "timedatectl-x86_64-linux.html",
+        "tjbench-x86_64-linux.html",
+        "tracegen-x86_64-linux.html",
+        "try-x86_64-linux.html",
+        "tsig_keygen-x86_64-linux.html",
+        "tsort-x86_64-linux.html",
+        "ts_print_raw-x86_64-linux.html",
+        "ts_test-x86_64-linux.html",
+        "tzupdate-x86_64-linux.html",
+        "udisksctl-x86_64-linux.html",
+        "ufw_docker-x86_64-linux.html",
+        "ufw-x86_64-linux.html",
+        "ulockmgr_server-x86_64-linux.html",
+        "umount.udisks2-x86_64-linux.html",
+        "unterm-x86_64-linux.html",
+        "userdel-x86_64-linux.html",
+        "uuserver-x86_64-linux.html",
+        "v4l2_compliance-x86_64-linux.html",
+        "v4l2_dbg-x86_64-linux.html",
+        "vdir-x86_64-linux.html",
+        "veritysetup-x86_64-linux.html",
+        "vmaf-x86_64-linux.html",
+        "vncsession_start-x86_64-linux.html",
+        "vterm_dump-x86_64-linux.html",
+        "wai_app_static-x86_64-linux.html",
+        "waitpid-x86_64-linux.html",
+        "wall-x86_64-linux.html",
+        "wayland_scanner-x86_64-linux.html",
+        "wcurl-x86_64-linux.html",
+        "webpng-x86_64-linux.html",
+        "whatis-x86_64-linux.html",
+        "whoami-x86_64-linux.html",
+        "who-x86_64-linux.html",
+        "wiremix-x86_64-linux.html",
+        "wks2csv-x86_64-linux.html",
+        "wordlist2dawg-x86_64-linux.html",
+        "wordlist2hunspell-x86_64-linux.html",
+        "wpctl-x86_64-linux.html",
+        "wpd2text-x86_64-linux.html",
+        "wps2html-x86_64-linux.html",
+        "wps2text-x86_64-linux.html",
+        "wrjpgcom-x86_64-linux.html",
+        "x86_64_pc_linux_gnu_gcc_nm-x86_64-linux.html",
+        "xdg_icon_resource-x86_64-linux.html",
+        "xdg_open-x86_64-linux.html",
+        "xdg_settings-x86_64-linux.html",
+        "ximtoppm-x86_64-linux.html",
+        "xkbcli-x86_64-linux.html",
+        "xkbcomp-x86_64-linux.html",
+        "xmlcatalog-x86_64-linux.html",
+        "xmlsec_unit_tests-x86_64-linux.html",
+        "xml-x86_64-linux.html",
+        "xpstopdf-x86_64-linux.html",
+        "xsetroot-x86_64-linux.html",
+        "xtractprotos-x86_64-linux.html",
+        "xvminitoppm-x86_64-linux.html",
+        "Xvnc-x86_64-linux.html",
+        "Xwayland-x86_64-linux.html",
+        "xxhsum-x86_64-linux.html",
+        "yuvtoppm-x86_64-linux.html",
+        "yuy2topam-x86_64-linux.html",
+        "zcat-x86_64-linux.html",
+        "zerk-x86_64-linux.html",
+        "zfgrep-x86_64-linux.html",
+        "zforce-x86_64-linux.html",
+        "zipgrep-x86_64-linux.html",
+        "zipinfo-x86_64-linux.html",
+        "zip-x86_64-linux.html",
+        "zstd-x86_64-linux.html"
+        ];
+
+        const totalCount = files.length;
+        let filteredFiles = [...files];
+
+        // Extract binary name from filename
+        function getBinaryName(filename) {
+            return filename.replace('-x86_64-linux.html', '').replace(/_/g, ' ');
+        }
+
+        // Render visualizations
+        function renderVisualizations(filesToRender) {
+            const container = document.getElementById('visualizations');
+            const countEl = document.getElementById('count');
+
+            if (filesToRender.length === 0) {
+                container.innerHTML = '<div class="no-results">No visualizations found matching your search.</div>';
+                countEl.textContent = '0 visualizations';
+                return;
+            }
+
+            container.innerHTML = filesToRender.map(file => {
+                const binaryName = getBinaryName(file);
+                return `
+                    <a href="${file}" class="card-link" target="_blank">
+                        <div class="card">
+                            <div class="card-title">${binaryName}</div>
+                            <div class="card-filename">${file}</div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+
+            countEl.textContent = `${filesToRender.length} of ${totalCount} visualizations`;
+        }
+
+        // Search functionality
+        const searchInput = document.getElementById('search');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+
+            if (query === '') {
+                filteredFiles = [...files];
+            } else {
+                filteredFiles = files.filter(file => {
+                    const binaryName = getBinaryName(file).toLowerCase();
+                    const filename = file.toLowerCase();
+                    return binaryName.includes(query) || filename.includes(query);
+                });
+            }
+
+            renderVisualizations(filteredFiles);
+        });
+
+        // Initial render
+        renderVisualizations(files);
+    </script>
+</body>
+</html>
