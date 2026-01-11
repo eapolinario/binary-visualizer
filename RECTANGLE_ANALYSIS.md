@@ -121,13 +121,93 @@ _start:
 | **ABI compliance** | x86-64 ABI specifies 64-bit operations | Violates ABI → incompatible with libraries |
 | **PIE/ASLR** | 64-bit addressing for security features | Modern Linux security requirements violated |
 
+## Test: 32-bit vs 64-bit Comparison
+
+### Does 32-bit x86 Eliminate the Rectangle?
+
+Compiling the same minimal program for 32-bit x86 (i386):
+
+| Binary | Arch | Triplets with ≥1 coord in [60-75] | Reduction |
+|--------|------|-----------------------------------|-----------|
+| minimal-dynamic | x86-64 | 465 / 15,774 (2.95%) | baseline |
+| **minimal32** | **i386** | **335 / 14,590 (2.30%)** | **-22%** |
+
+### Critical Finding: The Rectangle Persists!
+
+**Analysis of .text section (executable code):**
+- **minimal32 (32-bit)**: **0 bytes** in [60-75] range in .text section
+- **minimal-dynamic (64-bit)**: Multiple REX prefixes (0x48, 0x45, etc.) in .text
+
+**32-bit .text hex dump:**
+```
+31 ed 5e 89 e1 83 e4 f0  - NO bytes in [60-75] range!
+```
+
+**64-bit .text hex dump:**
+```
+48 8d 3d 99 48 8d 05 92  - MANY 0x48 (REX.W) prefixes!
+^^       ^^
+```
+
+### Why the Rectangle Persists in 32-bit
+
+The visualization scans the **ENTIRE BINARY FILE**, not just code!
+
+| Section | Purpose | Contains [60-75] bytes? |
+|---------|---------|------------------------|
+| .text | Executable code | ❌ 32-bit: NO / ✅ 64-bit: YES (REX) |
+| .strtab | String table | ✅ BOTH: 'GLIBC', '_IO_', 'TMC' |
+| .dynstr | Dynamic strings | ✅ BOTH: 'GLIBC_2.34' |
+| .symtab | Symbol table | ✅ BOTH: Symbol names |
+| ELF header | File format | ✅ BOTH: Magic 'ELF' (0x45,0x4C,0x46) |
+
+**In minimal32 (32-bit), the [60-75] bytes come from:**
+- 39 bytes in .strtab (string table) - 'GLIBC', '_IO_', 'TMC'
+- 12 bytes in .symtab (symbol table)
+- 3 bytes in .shstrtab (section header names)
+- **0 bytes in .text** (NO REX prefixes!)
+
+**In minimal-dynamic (64-bit), the [60-75] bytes come from:**
+- Same string bytes as 32-bit
+- **PLUS**: REX prefixes throughout .text section
+
+### Why It's Only 22% Smaller
+
+The rectangle reduction from 64-bit → 32-bit is modest because:
+
+| Source | 32-bit | 64-bit | Notes |
+|--------|--------|--------|-------|
+| **Strings** | ✅ Present | ✅ Present | Same GLIBC, symbol names |
+| **REX prefixes** | ❌ None | ✅ Many | Removed in 32-bit! |
+| **ELF format** | ✅ Same | ✅ Same | Both are ELF files |
+
+The 22% reduction comes **entirely from eliminating REX prefixes in code**.
+The remaining 78% is **unavoidable strings and metadata** required by the ELF format.
+
 ## Conclusion
 
-The [60-75]³ rectangle is a **fundamental fingerprint of x86-64 architecture**, not a removable artifact. It reflects:
+The [60-75]³ rectangle is a **fundamental fingerprint** of:
+- **x86-64 architecture**: REX prefixes (70-80%) + strings (20-30%)
+- **32-bit x86**: Strings only (~100%, unavoidable in ELF format)
+- **ELF binary format**: Requires certain strings (GLIBC versions, symbols)
 
-1. **How much code** the binary contains (more code = more REX)
-2. **Optimization level** (optimized code may use more REX variants)
-3. **String content** (contributes 20-30% to the rectangle)
-4. **Architecture** (x86-64 vs 32-bit vs ARM)
+### The Rectangle Components
 
-To eliminate the rectangle, you must **change the target architecture** or use an architecture without instructions in this byte range.
+1. **How much code** the binary contains (more code = more REX in 64-bit)
+2. **Architecture**: x86-64 has REX, 32-bit doesn't
+3. **String content**: GLIBC, symbols, section names (unavoidable in both)
+4. **ELF format**: Magic bytes, section names
+
+### Can It Be Eliminated?
+
+**For 32-bit x86:** The rectangle is 100% strings. To eliminate:
+- ✅ Compile statically (removes GLIBC version strings)
+- ✅ Strip all symbols (`strip --strip-all`)
+- ⚠️ Would still have: ELF magic bytes, section names, some data patterns
+
+**For x86-64:** The rectangle is REX + strings. To eliminate:
+- ❌ **Cannot remove REX** while staying on x86-64
+- ✅ Switch to 32-bit x86 (removes REX, keeps strings)
+- ✅ Switch to ARM/RISC-V (different instruction encoding entirely)
+
+**Bottom line:** The rectangle cannot be fully eliminated while using standard toolchains and dynamic linking. It's an architectural and format signature.
