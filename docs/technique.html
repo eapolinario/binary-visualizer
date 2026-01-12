@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Binary Visualizer - Staggering Technique Explained</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .nav-link:hover {
+            background: #764ba2;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            color: #764ba2;
+            margin: 30px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .highlight-box strong {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            color: #d63384;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .byte-sequence {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+        }
+
+        .byte {
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .byte.highlight-1 {
+            background: #ff6b6b;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+        }
+
+        .byte.highlight-2 {
+            background: #4ecdc4;
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.5);
+        }
+
+        .byte.highlight-3 {
+            background: #ffe66d;
+            color: #333;
+            box-shadow: 0 0 15px rgba(255, 230, 109, 0.5);
+        }
+
+        .window-example {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .window-step {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .coord-mapping {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .coord-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .coord-card .bytes {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .coord-card .coords {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: #f5f7fa;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+
+        .example-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .example-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .visual-diagram {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .grid-visual {
+            display: inline-grid;
+            grid-template-columns: repeat(16, 30px);
+            gap: 2px;
+            margin: 20px 0;
+        }
+
+        .grid-cell {
+            width: 30px;
+            height: 30px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .grid-cell.active {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 50px;
+            padding: 20px;
+            opacity: 0.9;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .section {
+                padding: 25px;
+            }
+
+            .byte-sequence {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Staggering Technique</h1>
+            <p>Understanding Binary Byte-Pair and Triplet Visualization</p>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Gallery</a>
+                <a href="https://github.com/eapolinario/binary-visualizer" class="nav-link" target="_blank">GitHub Repository</a>
+            </div>
+        </header>
+
+        <div class="section">
+            <h2>What is the Staggering Technique?</h2>
+            <p>
+                The <strong>staggering technique</strong> (also known as a <em>sliding window approach</em>) is the core method
+                used to visualize binary files as 2D heatmaps and 3D point clouds. Instead of reading bytes in fixed,
+                non-overlapping chunks, we read them in <strong>overlapping sequences</strong> that slide through the file
+                one byte at a time.
+            </p>
+
+            <div class="highlight-box">
+                <strong>Key Insight:</strong> By capturing every possible consecutive byte sequence, we reveal
+                structural patterns in the binary that would be hidden by non-overlapping sampling.
+            </div>
+
+            <p>
+                This technique is particularly powerful for analyzing executable files, where instruction opcodes
+                typically span 2-3 bytes and form meaningful patterns.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>How It Works: Sliding Window</h2>
+
+            <h3>Example: Reading a Simple File</h3>
+            <p>Let's say we have a binary file with the following bytes (shown in hexadecimal):</p>
+
+            <div class="byte-sequence">
+                <span class="byte">48</span>
+                <span class="byte">65</span>
+                <span class="byte">6C</span>
+                <span class="byte">6C</span>
+                <span class="byte">6F</span>
+            </div>
+
+            <h3>For 2D Visualization (Byte Pairs)</h3>
+            <p>
+                We slide a <strong>2-byte window</strong> through the file, moving 1 byte at a time.
+                This generates the following pairs:
+            </p>
+
+            <div class="window-example">
+                <div class="window-step">
+                    <strong>Step 1:</strong> Position 0-1
+                    <div class="byte-sequence">
+                        <span class="byte highlight-1">48</span>
+                        <span class="byte highlight-1">65</span>
+                        <span class="byte">6C</span>
+                        <span class="byte">6C</span>
+                        <span class="byte">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Pair: <strong>(0x48, 0x65)</strong> = (72, 101)
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="window-step">
+                    <strong>Step 2:</strong> Position 1-2
+                    <div class="byte-sequence">
+                        <span class="byte">48</span>
+                        <span class="byte highlight-2">65</span>
+                        <span class="byte highlight-2">6C</span>
+                        <span class="byte">6C</span>
+                        <span class="byte">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Pair: <strong>(0x65, 0x6C)</strong> = (101, 108)
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="window-step">
+                    <strong>Step 3:</strong> Position 2-3
+                    <div class="byte-sequence">
+                        <span class="byte">48</span>
+                        <span class="byte">65</span>
+                        <span class="byte highlight-3">6C</span>
+                        <span class="byte highlight-3">6C</span>
+                        <span class="byte">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Pair: <strong>(0x6C, 0x6C)</strong> = (108, 108)
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="window-step">
+                    <strong>Step 4:</strong> Position 3-4
+                    <div class="byte-sequence">
+                        <span class="byte">48</span>
+                        <span class="byte">65</span>
+                        <span class="byte">6C</span>
+                        <span class="byte highlight-1">6C</span>
+                        <span class="byte highlight-1">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Pair: <strong>(0x6C, 0x6F)</strong> = (108, 111)
+                    </div>
+                </div>
+            </div>
+
+            <p>
+                <strong>Result:</strong> From 5 bytes, we generated <strong>4 pairs</strong>. In general,
+                an N-byte file produces <code>N - 1</code> byte pairs.
+            </p>
+
+            <h3>For 3D Visualization (Byte Triplets)</h3>
+            <p>
+                Similarly, for 3D visualization, we slide a <strong>3-byte window</strong> through the file:
+            </p>
+
+            <div class="window-example">
+                <div class="window-step">
+                    <strong>Step 1:</strong> Position 0-2
+                    <div class="byte-sequence">
+                        <span class="byte highlight-1">48</span>
+                        <span class="byte highlight-1">65</span>
+                        <span class="byte highlight-1">6C</span>
+                        <span class="byte">6C</span>
+                        <span class="byte">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Triplet: <strong>(0x48, 0x65, 0x6C)</strong> = (72, 101, 108)
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="window-step">
+                    <strong>Step 2:</strong> Position 1-3
+                    <div class="byte-sequence">
+                        <span class="byte">48</span>
+                        <span class="byte highlight-2">65</span>
+                        <span class="byte highlight-2">6C</span>
+                        <span class="byte highlight-2">6C</span>
+                        <span class="byte">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Triplet: <strong>(0x65, 0x6C, 0x6C)</strong> = (101, 108, 108)
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="window-step">
+                    <strong>Step 3:</strong> Position 2-4
+                    <div class="byte-sequence">
+                        <span class="byte">48</span>
+                        <span class="byte">65</span>
+                        <span class="byte highlight-3">6C</span>
+                        <span class="byte highlight-3">6C</span>
+                        <span class="byte highlight-3">6F</span>
+                    </div>
+                    <div style="margin-top: 10px; font-family: 'Courier New', monospace;">
+                        → Triplet: <strong>(0x6C, 0x6C, 0x6F)</strong> = (108, 108, 111)
+                    </div>
+                </div>
+            </div>
+
+            <p>
+                <strong>Result:</strong> From 5 bytes, we generated <strong>3 triplets</strong>. In general,
+                an N-byte file produces <code>N - 2</code> byte triplets.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Mapping to Coordinates</h2>
+
+            <p>
+                Once we've extracted all byte pairs or triplets, we count their frequencies and map them to
+                visual coordinates.
+            </p>
+
+            <h3>2D Mapping (256×256 Grid)</h3>
+            <p>
+                Each byte pair <code>(byte₁, byte₂)</code> maps directly to a 2D coordinate:
+            </p>
+
+            <div class="coord-mapping">
+                <div class="coord-card">
+                    <div class="bytes">(0x48, 0x65)</div>
+                    <div class="coords">→ Pixel at (72, 101)</div>
+                </div>
+                <div class="coord-card">
+                    <div class="bytes">(0x00, 0x00)</div>
+                    <div class="coords">→ Pixel at (0, 0)</div>
+                </div>
+                <div class="coord-card">
+                    <div class="bytes">(0xFF, 0xFF)</div>
+                    <div class="coords">→ Pixel at (255, 255)</div>
+                </div>
+            </div>
+
+            <p>
+                The <strong>brightness</strong> of each pixel represents how frequently that pair appears:
+            </p>
+            <ul style="margin-left: 40px; margin-bottom: 20px;">
+                <li><strong>Dark pixels:</strong> Rare byte pairs (low frequency)</li>
+                <li><strong>Bright pixels:</strong> Common byte pairs (high frequency)</li>
+            </ul>
+
+            <h3>3D Mapping (256×256×256 Space)</h3>
+            <p>
+                Each byte triplet <code>(byte₁, byte₂, byte₃)</code> maps to a 3D coordinate:
+            </p>
+
+            <div class="coord-mapping">
+                <div class="coord-card">
+                    <div class="bytes">(0x48, 0x65, 0x6C)</div>
+                    <div class="coords">→ Point at (72, 101, 108)</div>
+                </div>
+                <div class="coord-card">
+                    <div class="bytes">(0x00, 0x00, 0x00)</div>
+                    <div class="coords">→ Point at (0, 0, 0)</div>
+                </div>
+                <div class="coord-card">
+                    <div class="bytes">(0xFF, 0xFF, 0xFF)</div>
+                    <div class="coords">→ Point at (255, 255, 255)</div>
+                </div>
+            </div>
+
+            <p>
+                The <strong>color and opacity</strong> of each point represents its frequency:
+            </p>
+            <ul style="margin-left: 40px; margin-bottom: 20px;">
+                <li><strong>Dark/transparent:</strong> Rare triplets</li>
+                <li><strong>Bright/opaque:</strong> Common triplets</li>
+                <li><strong>Color gradient:</strong> Viridis scale (purple → yellow)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Implementation Details</h2>
+
+            <h3>Efficient File Reading</h3>
+            <p>
+                The visualizer uses <strong>memory mapping (mmap)</strong> for efficient sequential access,
+                allowing it to process large binaries without loading the entire file into memory:
+            </p>
+
+            <pre><code># Python implementation for byte pairs
+with open(binary_file, 'rb') as handle:
+    with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+        for i in range(len(mm) - 1):
+            pair = (mm[i], mm[i + 1])
+            counts[pair] += 1
+
+# For byte triplets
+with open(binary_file, 'rb') as handle:
+    with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+        for i in range(len(mm) - 2):
+            triplet = (mm[i], mm[i + 1], mm[i + 2])
+            counts[triplet] += 1</code></pre>
+
+            <h3>Tone Mapping (Brightness Scaling)</h3>
+            <p>
+                Three scaling modes transform frequency counts into visual brightness:
+            </p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Mode</th>
+                        <th>Formula</th>
+                        <th>Effect</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Linear</strong></td>
+                        <td><code>brightness = (count / max_count) × 255</code></td>
+                        <td>Direct proportional mapping</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Logarithmic</strong> (default)</td>
+                        <td><code>brightness = (log(count + 1) / log(max_count + 1)) × 255</code></td>
+                        <td>Emphasizes rare patterns</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Square Root</strong></td>
+                        <td><code>brightness = sqrt(count / max_count) × 255</code></td>
+                        <td>Balanced contrast</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="margin-top: 20px;">
+                The logarithmic scale is particularly effective for executable analysis because it makes
+                rare instruction sequences visible alongside common patterns.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Why This Works: Pattern Recognition</h2>
+
+            <div class="example-grid">
+                <div class="example-card">
+                    <h4>Executable Files</h4>
+                    <p>
+                        x86-64 instructions are typically 2-3 bytes. The staggering technique captures
+                        complete opcode sequences, revealing:
+                    </p>
+                    <ul style="margin-left: 20px;">
+                        <li>Function prologues/epilogues</li>
+                        <li>Common instruction patterns</li>
+                        <li>Register usage patterns</li>
+                        <li>Compiler fingerprints</li>
+                    </ul>
+                </div>
+
+                <div class="example-card">
+                    <h4>Compressed/Encrypted Files</h4>
+                    <p>
+                        Compression and encryption produce uniform byte distributions:
+                    </p>
+                    <ul style="margin-left: 20px;">
+                        <li>No visible clustering</li>
+                        <li>Even spread across coordinate space</li>
+                        <li>All pairs/triplets appear with similar frequency</li>
+                        <li>High entropy signature</li>
+                    </ul>
+                </div>
+
+                <div class="example-card">
+                    <h4>Structured Data Files</h4>
+                    <p>
+                        File formats with headers and structured sections show:
+                    </p>
+                    <ul style="margin-left: 20px;">
+                        <li>Distinct clusters for different sections</li>
+                        <li>Repeating patterns (magic numbers)</li>
+                        <li>Alignment padding sequences</li>
+                        <li>Format-specific byte sequences</li>
+                    </ul>
+                </div>
+
+                <div class="example-card">
+                    <h4>Text Files</h4>
+                    <p>
+                        ASCII/UTF-8 text produces characteristic patterns:
+                    </p>
+                    <ul style="margin-left: 20px;">
+                        <li>Limited byte range (0x20-0x7E for ASCII)</li>
+                        <li>Common letter pairs (bigrams)</li>
+                        <li>Whitespace patterns</li>
+                        <li>Language-specific frequencies</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Comparison with Alternative Approaches</h2>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Approach</th>
+                        <th>Pairs Generated</th>
+                        <th>Coverage</th>
+                        <th>Pattern Detection</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Staggering (Our Method)</strong></td>
+                        <td>N - 1 pairs from N bytes</td>
+                        <td>100% - every consecutive sequence</td>
+                        <td>Excellent - no patterns missed</td>
+                    </tr>
+                    <tr>
+                        <td>Non-overlapping chunks</td>
+                        <td>N / 2 pairs from N bytes</td>
+                        <td>50% - depends on alignment</td>
+                        <td>Poor - misses patterns at boundaries</td>
+                    </tr>
+                    <tr>
+                        <td>Random sampling</td>
+                        <td>Varies with sample rate</td>
+                        <td>Statistical approximation</td>
+                        <td>Fair - may miss rare patterns</td>
+                    </tr>
+                    <tr>
+                        <td>Fixed stride (every N bytes)</td>
+                        <td>N / stride pairs</td>
+                        <td>Partial - misses in-between bytes</td>
+                        <td>Poor - systematic blind spots</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="highlight-box" style="margin-top: 30px;">
+                <strong>The Advantage:</strong> By examining every consecutive byte sequence, the staggering
+                technique provides complete coverage of the binary's structure. This is essential for
+                understanding executable files where even a single misaligned read could miss critical
+                instruction patterns.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Real-World Example</h2>
+
+            <h3>Analyzing an x86-64 Instruction Sequence</h3>
+            <p>
+                Consider this real x86-64 function prologue (in machine code):
+            </p>
+
+            <div class="byte-sequence">
+                <span class="byte">55</span>
+                <span class="byte">48</span>
+                <span class="byte">89</span>
+                <span class="byte">E5</span>
+                <span class="byte">48</span>
+                <span class="byte">83</span>
+                <span class="byte">EC</span>
+                <span class="byte">10</span>
+            </div>
+
+            <p style="margin-top: 15px;">
+                This disassembles to:
+            </p>
+
+            <pre><code>55           push   rbp
+48 89 E5     mov    rbp, rsp
+48 83 EC 10  sub    rsp, 0x10</code></pre>
+
+            <p>
+                The staggering technique generates these pairs:
+            </p>
+
+            <div class="window-example">
+                <div style="font-family: 'Courier New', monospace; line-height: 1.8;">
+                    (0x55, 0x48) → Function prologue start<br>
+                    (0x48, 0x89) → REX.W prefix + mov opcode<br>
+                    (0x89, 0xE5) → mov rbp, rsp pattern<br>
+                    (0xE5, 0x48) → Common in x86-64 prologues<br>
+                    (0x48, 0x83) → REX.W + sub opcode<br>
+                    (0x83, 0xEC) → Stack adjustment pattern<br>
+                    (0xEC, 0x10) → Immediate value pairing
+                </div>
+            </div>
+
+            <p>
+                When visualized across thousands of functions, these patterns create <strong>bright clusters</strong>
+                at specific coordinates, revealing the compiler's code generation habits and the architecture's
+                instruction encoding patterns.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Try It Yourself</h2>
+
+            <p>
+                Ready to visualize your own binaries? Here's how to get started:
+            </p>
+
+            <pre><code># Clone the repository
+git clone https://github.com/eapolinario/binary-visualizer.git
+cd binary-visualizer
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Generate a 2D visualization (PPM format)
+make run INPUT=/path/to/binary OUTPUT=output.ppm SCALE=log
+
+# Generate a 3D visualization (interactive HTML)
+make run-3d INPUT=/path/to/binary OUTPUT_DIR=. SCALE=log</code></pre>
+
+            <p>
+                Explore the <a href="index.html" style="color: #667eea; text-decoration: underline;">interactive gallery</a>
+                to see hundreds of x86-64 binaries visualized using this technique!
+            </p>
+        </div>
+
+        <footer>
+            <p>
+                Binary Visualizer |
+                <a href="https://github.com/eapolinario/binary-visualizer">GitHub Repository</a> |
+                <a href="index.html">Gallery</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
