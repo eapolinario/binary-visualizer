@@ -26,11 +26,21 @@ Tone-mapping options:
 
 ## Examples Gallery
 
-View interactive 3D visualizations of 630+ x86_64 Linux binaries:
+View interactive 3D visualizations of **770+ binaries** across **20+ architectures**:
 
 **[Browse Examples Gallery →](https://eapolinario.github.io/binary-visualizer/)**
 
-The gallery includes visualizations of common system binaries, showing byte triplet patterns in 3D space. Use the search feature to find specific binaries like `python`, `gcc`, `vim`, and more.
+The gallery includes visualizations from multiple platforms and ISAs:
+
+| Platform | Architectures |
+|----------|---------------|
+| **Linux** | x86_64, aarch64, x86, Alpha, MIPS, PowerPC, SPARC, s390, SuperH4, PA-RISC, IA-64 |
+| **macOS/iOS** | x86_64, aarch64, x86, PPC, ARM (various) |
+| **Windows** | x86_64, x86, ARMv7 |
+| **BSD** | FreeBSD, NetBSD, OpenBSD (x86_64) |
+| **Other** | Solaris (SPARC, x86), HP-UX (IA-64), Haiku, Cygwin |
+
+Use the search feature to find specific binaries or filter by architecture (e.g., search `alpha` or `sparc`).
 
 ## 3D Visualization
 
