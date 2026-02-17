@@ -148,7 +148,6 @@ def _load_bytes_to_db(path: Path, conn: sqlite3.Connection) -> int:
     window-function queries that follow.
     """
 
-    conn.execute("DROP TABLE IF EXISTS bytes")
     conn.execute("CREATE TABLE bytes (offset INTEGER PRIMARY KEY, value INTEGER NOT NULL)")
 
     file_size = path.stat().st_size
@@ -247,7 +246,6 @@ def _load_bytes_to_duckdb(path: Path, conn: duckdb.DuckDBPyConnection) -> int:
     window-function queries significantly faster than SQLite for large files.
     """
 
-    conn.execute("DROP TABLE IF EXISTS bytes")
     conn.execute("CREATE TABLE bytes (pos INTEGER, value INTEGER)")
 
     file_size = path.stat().st_size
