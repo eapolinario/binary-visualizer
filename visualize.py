@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import math
 import mmap
+import sqlite3
 from collections import defaultdict
 from pathlib import Path
 from typing import DefaultDict, Tuple
@@ -69,6 +70,17 @@ def parse_args() -> argparse.Namespace:
             "interactive HTML file with a 3D Plotly visualization."
         ),
     )
+    parser.add_argument(
+        "--engine",
+        choices=("mmap", "db"),
+        default="mmap",
+        help=(
+            "Computation engine. 'mmap' (default) scans the file directly "
+            "with memory mapping. 'db' loads the file into an in-memory "
+            "SQLite database and computes frequencies with SQL window "
+            "functions."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -117,6 +129,106 @@ def scan_triplets(path: Path) -> Grid3DCounts:
             for i in tqdm(range(len(mm) - 2), desc="Scanning byte triplets", unit="triplets"):
                 counts[(mm[i], mm[i + 1], mm[i + 2])] += 1
 
+    return counts
+
+
+def _load_bytes_to_db(path: Path, conn: sqlite3.Connection) -> int:
+    """Load every byte of *path* into a ``bytes`` table and return the row count.
+
+    The table has two columns: ``offset`` (the byte position) and ``value``
+    (the unsigned byte value 0-255).  Rows are inserted in batches for
+    efficiency and the table is indexed on ``offset`` to accelerate the
+    window-function queries that follow.
+    """
+
+    conn.execute("DROP TABLE IF EXISTS bytes")
+    conn.execute("CREATE TABLE bytes (offset INTEGER PRIMARY KEY, value INTEGER NOT NULL)")
+
+    file_size = path.stat().st_size
+    if file_size == 0:
+        return 0
+
+    BATCH = 65_536
+    with path.open("rb") as fh:
+        with mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            batch = []
+            for i in tqdm(range(len(mm)), desc="Loading bytes into DB", unit="bytes"):
+                batch.append((i, mm[i]))
+                if len(batch) >= BATCH:
+                    conn.executemany("INSERT INTO bytes VALUES (?, ?)", batch)
+                    batch.clear()
+            if batch:
+                conn.executemany("INSERT INTO bytes VALUES (?, ?)", batch)
+    conn.commit()
+    return file_size
+
+
+def scan_pairs_db(path: Path) -> GridCounts:
+    """Compute byte-pair frequencies using SQL window functions.
+
+    Loads the file into an in-memory SQLite database, uses ``LEAD()`` to
+    form consecutive pairs, and aggregates with ``GROUP BY`` to produce
+    the same ``GridCounts`` dictionary as :func:`scan_pairs`.
+    """
+
+    counts: GridCounts = defaultdict(int)
+    conn = sqlite3.connect(":memory:")
+    try:
+        n = _load_bytes_to_db(path, conn)
+        if n < 2:
+            return counts
+
+        rows = conn.execute(
+            """
+            SELECT b1, b2, COUNT(*) AS freq
+            FROM (
+                SELECT value AS b1,
+                       LEAD(value) OVER (ORDER BY offset) AS b2
+                FROM bytes
+            )
+            WHERE b2 IS NOT NULL
+            GROUP BY b1, b2
+            """
+        )
+        for b1, b2, freq in tqdm(rows, desc="Reading pair counts from DB"):
+            counts[(b1, b2)] = freq
+    finally:
+        conn.close()
+    return counts
+
+
+def scan_triplets_db(path: Path) -> Grid3DCounts:
+    """Compute byte-triplet frequencies using SQL window functions.
+
+    Loads the file into an in-memory SQLite database, uses ``LEAD()`` to
+    form consecutive triplets, and aggregates with ``GROUP BY`` to produce
+    the same ``Grid3DCounts`` dictionary as :func:`scan_triplets`.
+    """
+
+    counts: Grid3DCounts = defaultdict(int)
+    conn = sqlite3.connect(":memory:")
+    try:
+        n = _load_bytes_to_db(path, conn)
+        if n < 3:
+            return counts
+
+        rows = conn.execute(
+            """
+            SELECT b1, b2, b3, COUNT(*) AS freq
+            FROM (
+                SELECT value AS b1,
+                       LEAD(value, 1) OVER (ORDER BY offset) AS b2,
+                       LEAD(value, 2) OVER (ORDER BY offset) AS b3
+                FROM bytes
+            )
+            WHERE b2 IS NOT NULL AND b3 IS NOT NULL
+            GROUP BY b1, b2, b3
+            """
+        )
+        for b1, b2, b3, freq in tqdm(rows, desc="Reading triplet counts from DB"):
+            counts[(b1, b2, b3)] = freq
+    finally:
+        conn.close()
     return counts
 
 
@@ -303,13 +415,14 @@ def write_plotly_3d(
 
 def main() -> None:
     args = parse_args()
+    use_db = args.engine == "db"
 
     if args.mode == "2d":
-        counts = scan_pairs(args.input)
+        counts = scan_pairs_db(args.input) if use_db else scan_pairs(args.input)
         peak = max_count(counts)
         write_ppm(counts, peak, args.output, args.scale)
     else:  # 3d mode
-        counts_3d = scan_triplets(args.input)
+        counts_3d = scan_triplets_db(args.input) if use_db else scan_triplets(args.input)
         peak = max_count_3d(counts_3d)
         write_plotly_3d(counts_3d, peak, args.output, args.scale)
 
