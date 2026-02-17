@@ -182,6 +182,72 @@ def test_db_two_bytes(tmp_path: Path) -> None:
     assert dict(visualize.scan_triplets_db(target)) == {}
 
 
+def test_counts_expected_pairs_duckdb(tmp_path: Path) -> None:
+    data = bytes([0, 1, 2, 3, 2])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+
+    counts = visualize.scan_pairs_duckdb(target)
+    expected = {
+        (0, 1): 1,
+        (1, 2): 1,
+        (2, 3): 1,
+        (3, 2): 1,
+    }
+
+    assert dict(counts) == expected
+    assert visualize.max_count(counts) == 1
+
+
+def test_counts_expected_triplets_duckdb(tmp_path: Path) -> None:
+    data = bytes([0, 1, 2, 3, 2, 1])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+
+    counts = visualize.scan_triplets_duckdb(target)
+    expected = {
+        (0, 1, 2): 1,
+        (1, 2, 3): 1,
+        (2, 3, 2): 1,
+        (3, 2, 1): 1,
+    }
+
+    assert dict(counts) == expected
+    assert visualize.max_count_3d(counts) == 1
+
+
+def test_duckdb_matches_mmap_pairs(tmp_path: Path) -> None:
+    """The duckdb engine should produce identical results to the mmap engine."""
+    data = bytes(range(256)) + bytes([0, 0, 0, 1, 1, 2])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+
+    mmap_counts = dict(visualize.scan_pairs(target))
+    duckdb_counts = dict(visualize.scan_pairs_duckdb(target))
+
+    assert mmap_counts == duckdb_counts
+
+
+def test_duckdb_matches_mmap_triplets(tmp_path: Path) -> None:
+    """The duckdb engine should produce identical results to the mmap engine."""
+    data = bytes(range(256)) + bytes([0, 0, 0, 1, 1, 2])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+
+    mmap_counts = dict(visualize.scan_triplets(target))
+    duckdb_counts = dict(visualize.scan_triplets_duckdb(target))
+
+    assert mmap_counts == duckdb_counts
+
+
+def test_duckdb_empty_file(tmp_path: Path) -> None:
+    target = tmp_path / "empty.bin"
+    target.write_bytes(b"")
+
+    assert dict(visualize.scan_pairs_duckdb(target)) == {}
+    assert dict(visualize.scan_triplets_duckdb(target)) == {}
+
+
 def test_3d_mode_integration(tmp_path: Path) -> None:
     """Integration test for full 3D mode execution via main()."""
     import sys

@@ -31,6 +31,12 @@ try:
 except ImportError:
     PLOTLY_AVAILABLE = False
 
+try:
+    import duckdb
+    DUCKDB_AVAILABLE = True
+except ImportError:
+    DUCKDB_AVAILABLE = False
+
 
 GridCounts = DefaultDict[Tuple[int, int], int]
 Grid3DCounts = DefaultDict[Tuple[int, int, int], int]
@@ -72,13 +78,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--engine",
-        choices=("mmap", "db"),
+        choices=("mmap", "sqlite", "duckdb"),
         default="mmap",
         help=(
             "Computation engine. 'mmap' (default) scans the file directly "
-            "with memory mapping. 'db' loads the file into an in-memory "
+            "with memory mapping. 'sqlite' loads the file into an in-memory "
             "SQLite database and computes frequencies with SQL window "
-            "functions."
+            "functions. 'duckdb' does the same with DuckDB's columnar "
+            "engine for faster analytical queries."
         ),
     )
     return parser.parse_args()
@@ -226,6 +233,114 @@ def scan_triplets_db(path: Path) -> Grid3DCounts:
             """
         )
         for b1, b2, b3, freq in tqdm(rows, desc="Reading triplet counts from DB"):
+            counts[(b1, b2, b3)] = freq
+    finally:
+        conn.close()
+    return counts
+
+
+def _load_bytes_to_duckdb(path: Path, conn: duckdb.DuckDBPyConnection) -> int:
+    """Load every byte of *path* into a ``bytes`` table and return the row count.
+
+    Uses the same schema as :func:`_load_bytes_to_db` but targets a DuckDB
+    connection.  DuckDB's vectorised execution makes the subsequent
+    window-function queries significantly faster than SQLite for large files.
+    """
+
+    conn.execute("DROP TABLE IF EXISTS bytes")
+    conn.execute("CREATE TABLE bytes (pos INTEGER, value INTEGER)")
+
+    file_size = path.stat().st_size
+    if file_size == 0:
+        return 0
+
+    BATCH = 65_536
+    with path.open("rb") as fh:
+        with mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            batch = []
+            for i in tqdm(range(len(mm)), desc="Loading bytes into DuckDB", unit="bytes"):
+                batch.append((i, mm[i]))
+                if len(batch) >= BATCH:
+                    conn.executemany("INSERT INTO bytes VALUES (?, ?)", batch)
+                    batch.clear()
+            if batch:
+                conn.executemany("INSERT INTO bytes VALUES (?, ?)", batch)
+    return file_size
+
+
+def scan_pairs_duckdb(path: Path) -> GridCounts:
+    """Compute byte-pair frequencies using DuckDB window functions.
+
+    Same approach as :func:`scan_pairs_db` but uses DuckDB's columnar,
+    vectorised engine which is significantly faster for analytical queries.
+    """
+
+    if not DUCKDB_AVAILABLE:
+        raise ImportError(
+            "DuckDB is required for --engine duckdb. "
+            "Install it with: pip install duckdb"
+        )
+
+    counts: GridCounts = defaultdict(int)
+    conn = duckdb.connect(":memory:")
+    try:
+        n = _load_bytes_to_duckdb(path, conn)
+        if n < 2:
+            return counts
+
+        rows = conn.execute(
+            """
+            SELECT b1, b2, COUNT(*) AS freq
+            FROM (
+                SELECT value AS b1,
+                       LEAD(value) OVER (ORDER BY pos) AS b2
+                FROM bytes
+            )
+            WHERE b2 IS NOT NULL
+            GROUP BY b1, b2
+            """
+        ).fetchall()
+        for b1, b2, freq in tqdm(rows, desc="Reading pair counts from DuckDB"):
+            counts[(b1, b2)] = freq
+    finally:
+        conn.close()
+    return counts
+
+
+def scan_triplets_duckdb(path: Path) -> Grid3DCounts:
+    """Compute byte-triplet frequencies using DuckDB window functions.
+
+    Same approach as :func:`scan_triplets_db` but uses DuckDB's columnar,
+    vectorised engine which is significantly faster for analytical queries.
+    """
+
+    if not DUCKDB_AVAILABLE:
+        raise ImportError(
+            "DuckDB is required for --engine duckdb. "
+            "Install it with: pip install duckdb"
+        )
+
+    counts: Grid3DCounts = defaultdict(int)
+    conn = duckdb.connect(":memory:")
+    try:
+        n = _load_bytes_to_duckdb(path, conn)
+        if n < 3:
+            return counts
+
+        rows = conn.execute(
+            """
+            SELECT b1, b2, b3, COUNT(*) AS freq
+            FROM (
+                SELECT value AS b1,
+                       LEAD(value, 1) OVER (ORDER BY pos) AS b2,
+                       LEAD(value, 2) OVER (ORDER BY pos) AS b3
+                FROM bytes
+            )
+            WHERE b2 IS NOT NULL AND b3 IS NOT NULL
+            GROUP BY b1, b2, b3
+            """
+        ).fetchall()
+        for b1, b2, b3, freq in tqdm(rows, desc="Reading triplet counts from DuckDB"):
             counts[(b1, b2, b3)] = freq
     finally:
         conn.close()
@@ -415,14 +530,25 @@ def write_plotly_3d(
 
 def main() -> None:
     args = parse_args()
-    use_db = args.engine == "db"
+    engine = args.engine
+
+    pair_scanners = {
+        "mmap": scan_pairs,
+        "sqlite": scan_pairs_db,
+        "duckdb": scan_pairs_duckdb,
+    }
+    triplet_scanners = {
+        "mmap": scan_triplets,
+        "sqlite": scan_triplets_db,
+        "duckdb": scan_triplets_duckdb,
+    }
 
     if args.mode == "2d":
-        counts = scan_pairs_db(args.input) if use_db else scan_pairs(args.input)
+        counts = pair_scanners[engine](args.input)
         peak = max_count(counts)
         write_ppm(counts, peak, args.output, args.scale)
     else:  # 3d mode
-        counts_3d = scan_triplets_db(args.input) if use_db else scan_triplets(args.input)
+        counts_3d = triplet_scanners[engine](args.input)
         peak = max_count_3d(counts_3d)
         write_plotly_3d(counts_3d, peak, args.output, args.scale)
 
