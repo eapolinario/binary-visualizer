@@ -248,6 +248,62 @@ def test_duckdb_empty_file(tmp_path: Path) -> None:
     assert dict(visualize.scan_triplets_duckdb(target)) == {}
 
 
+def test_sqlite_persistent_reuse(tmp_path: Path) -> None:
+    """Second call with the same db_path should reuse cached data."""
+    data = bytes([0, 1, 2, 3])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+    db = tmp_path / "cache.sqlite"
+
+    first = dict(visualize.scan_pairs_db(target, db_path=db))
+    assert db.exists()
+    second = dict(visualize.scan_pairs_db(target, db_path=db))
+    assert first == second
+
+
+def test_sqlite_persistent_stale(tmp_path: Path) -> None:
+    """Changing the source file should trigger a reload."""
+    target = tmp_path / "sample.bin"
+    target.write_bytes(bytes([0, 1, 2, 3]))
+    db = tmp_path / "cache.sqlite"
+
+    first = dict(visualize.scan_pairs_db(target, db_path=db))
+
+    # Overwrite with different content
+    target.write_bytes(bytes([10, 20, 30, 40, 50]))
+    second = dict(visualize.scan_pairs_db(target, db_path=db))
+    assert first != second
+    assert second == {(10, 20): 1, (20, 30): 1, (30, 40): 1, (40, 50): 1}
+
+
+def test_duckdb_persistent_reuse(tmp_path: Path) -> None:
+    """Second call with the same db_path should reuse cached data."""
+    data = bytes([0, 1, 2, 3])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+    db = tmp_path / "cache.duckdb"
+
+    first = dict(visualize.scan_pairs_duckdb(target, db_path=db))
+    assert db.exists()
+    second = dict(visualize.scan_pairs_duckdb(target, db_path=db))
+    assert first == second
+
+
+def test_duckdb_persistent_stale(tmp_path: Path) -> None:
+    """Changing the source file should trigger a reload."""
+    target = tmp_path / "sample.bin"
+    target.write_bytes(bytes([0, 1, 2, 3]))
+    db = tmp_path / "cache.duckdb"
+
+    first = dict(visualize.scan_pairs_duckdb(target, db_path=db))
+
+    # Overwrite with different content
+    target.write_bytes(bytes([10, 20, 30, 40, 50]))
+    second = dict(visualize.scan_pairs_duckdb(target, db_path=db))
+    assert first != second
+    assert second == {(10, 20): 1, (20, 30): 1, (30, 40): 1, (40, 50): 1}
+
+
 def test_3d_mode_integration(tmp_path: Path) -> None:
     """Integration test for full 3D mode execution via main()."""
     import sys
