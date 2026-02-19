@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
 /// Scan byte pairs in the input data and return a 256x256 frequency grid
@@ -63,6 +64,57 @@ pub fn file_stats(data: &[u8]) -> Vec<u32> {
     vec![data.len() as u32, unique, peak]
 }
 
+/// Scan byte triplets and return packed [x, y, z, brightness, ...] as f32.
+/// Keeps at most `max_points` triplets (highest frequency first).
+#[wasm_bindgen]
+pub fn triplet_data(data: &[u8], scale: u8, max_points: u32) -> Vec<f32> {
+    if data.len() < 3 {
+        return vec![];
+    }
+
+    let mut counts: HashMap<[u8; 3], u32> = HashMap::new();
+    for w in data.windows(3) {
+        let key = [w[0], w[1], w[2]];
+        *counts.entry(key).or_insert(0) += 1;
+    }
+
+    let peak = counts.values().copied().max().unwrap_or(0);
+
+    let mut entries: Vec<_> = counts.into_iter().collect();
+    entries.sort_unstable_by(|a, b| b.1.cmp(&a.1));
+    if max_points > 0 && entries.len() > max_points as usize {
+        entries.truncate(max_points as usize);
+    }
+
+    let mut result = Vec::with_capacity(entries.len() * 4);
+    for (key, count) in entries {
+        let b = brightness(count, peak, scale) as f32 / 255.0;
+        result.push(key[0] as f32);
+        result.push(key[1] as f32);
+        result.push(key[2] as f32);
+        result.push(b);
+    }
+    result
+}
+
+/// Return stats for triplet mode: [file_size, unique_triplets, max_count].
+#[wasm_bindgen]
+pub fn triplet_stats(data: &[u8]) -> Vec<u32> {
+    if data.len() < 3 {
+        return vec![data.len() as u32, 0, 0];
+    }
+
+    let mut counts: HashMap<[u8; 3], u32> = HashMap::new();
+    for w in data.windows(3) {
+        let key = [w[0], w[1], w[2]];
+        *counts.entry(key).or_insert(0) += 1;
+    }
+
+    let peak = counts.values().copied().max().unwrap_or(0);
+    let unique = counts.len() as u32;
+    vec![data.len() as u32, unique, peak]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,6 +158,39 @@ mod tests {
         // pairs: (0,1) x2, (1,0) x2 -> 2 unique, max 2
         assert_eq!(stats[0], 5); // file size
         assert_eq!(stats[1], 2); // unique pairs
+        assert_eq!(stats[2], 2); // max count
+    }
+
+    #[test]
+    fn triplet_data_empty() {
+        assert!(triplet_data(&[], 0, 0).is_empty());
+        assert!(triplet_data(&[1, 2], 0, 0).is_empty());
+    }
+
+    #[test]
+    fn triplet_data_single() {
+        let result = triplet_data(&[0x10, 0x20, 0x30], 0, 0);
+        assert_eq!(result.len(), 4); // one triplet: x, y, z, brightness
+        assert_eq!(result[0], 0x10 as f32);
+        assert_eq!(result[1], 0x20 as f32);
+        assert_eq!(result[2], 0x30 as f32);
+        assert_eq!(result[3], 1.0); // single entry = max = full brightness
+    }
+
+    #[test]
+    fn triplet_data_max_points() {
+        // 5 bytes -> 3 triplets: (0,1,2), (1,2,3), (2,3,4)
+        let result = triplet_data(&[0, 1, 2, 3, 4], 0, 2);
+        // max_points=2 should limit to 2 triplets -> 8 floats
+        assert_eq!(result.len(), 8);
+    }
+
+    #[test]
+    fn triplet_stats_works() {
+        let stats = triplet_stats(&[0, 1, 2, 0, 1, 2]);
+        // triplets: (0,1,2) x2, (1,2,0) x1, (2,0,1) x1 -> 3 unique, max 2
+        assert_eq!(stats[0], 6); // file size
+        assert_eq!(stats[1], 3); // unique triplets
         assert_eq!(stats[2], 2); // max count
     }
 }
