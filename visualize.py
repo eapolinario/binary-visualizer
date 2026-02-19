@@ -33,6 +33,7 @@ except ImportError:
 
 GridCounts = DefaultDict[Tuple[int, int], int]
 Grid3DCounts = DefaultDict[Tuple[int, int, int], int]
+BytePositions = DefaultDict[int, list]
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,12 +62,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=("2d", "3d"),
+        choices=("2d", "3d", "minimap"),
         default="2d",
         help=(
             "Visualization mode. '2d' (default) scans byte pairs for a single "
             "256x256 PPM heatmap. '3d' scans byte triplets and outputs an "
-            "interactive HTML file with a 3D Plotly visualization."
+            "interactive HTML file with a 3D Plotly visualization. 'minimap' "
+            "shows byte value frequency as a 256-row strip; click a row to "
+            "see where that byte value appears in the file."
         ),
     )
     return parser.parse_args()
@@ -118,6 +121,27 @@ def scan_triplets(path: Path) -> Grid3DCounts:
                 counts[(mm[i], mm[i + 1], mm[i + 2])] += 1
 
     return counts
+
+
+def scan_byte_positions(path: Path) -> tuple[BytePositions, int]:
+    """Return a mapping of byte value to file offsets, plus total file size.
+
+    For each byte value (0-255), records every offset in the file where that
+    value appears. Uses memory mapping for efficient sequential access.
+    """
+
+    positions: BytePositions = defaultdict(list)
+
+    file_size = path.stat().st_size
+    if file_size == 0:
+        return positions, 0
+
+    with path.open("rb") as handle:
+        with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            for i in tqdm(range(len(mm)), desc="Scanning byte positions", unit="bytes"):
+                positions[mm[i]].append(i)
+
+    return positions, file_size
 
 
 def max_count(counts: GridCounts) -> int:
@@ -301,6 +325,151 @@ def write_plotly_3d(
     print(f"Total unique triplets: {len(x_coords):,}")
 
 
+def write_minimap_html(
+    positions: BytePositions, file_size: int, output: Path, scale: str
+) -> None:
+    """Write an interactive byte-value minimap as a self-contained HTML file.
+
+    The minimap is a 256-row strip where each row represents a byte value
+    (0x00-0xFF). Row brightness reflects how frequently that byte appears.
+    Clicking a row reveals a location bar showing where that byte value
+    occurs throughout the file.
+    """
+
+    # Compute frequency for each byte value
+    freq = [len(positions.get(b, [])) for b in range(256)]
+    peak_freq = max(freq) if freq else 0
+
+    # Bin positions into buckets for the location bar.  Using 1024 bins
+    # keeps the display fast even for large files while still giving good
+    # resolution.
+    num_bins = 1024
+
+    # Pre-compute binned data for every byte value so the JS side only
+    # needs a compact lookup table.
+    import json
+
+    bin_data: dict[int, list[int]] = {}
+    for byte_val in range(256):
+        if not positions.get(byte_val):
+            continue
+        bins = [0] * num_bins
+        for offset in positions[byte_val]:
+            idx = int(offset / file_size * num_bins) if file_size else 0
+            idx = min(idx, num_bins - 1)
+            bins[idx] += 1
+        bin_data[byte_val] = bins
+
+    # Brightness values for each byte (used by the minimap strip)
+    bright = [brightness(f, peak_freq, scale) for f in freq]
+
+    html_path = output.with_suffix(".html")
+    html_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with html_path.open("w", encoding="utf-8") as f:
+        f.write(f"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Binary Minimap</title>
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ background: #1e1e1e; color: #ccc; font-family: monospace;
+         display: flex; flex-direction: column; align-items: center;
+         padding: 20px; }}
+  h1 {{ margin-bottom: 8px; font-size: 18px; }}
+  .subtitle {{ margin-bottom: 16px; font-size: 12px; color: #888; }}
+  .container {{ display: flex; gap: 24px; align-items: flex-start; }}
+  .minimap-wrap {{ display: flex; flex-direction: column; align-items: center; }}
+  .minimap-label {{ font-size: 11px; color: #888; margin-bottom: 4px; }}
+  canvas#minimap {{ cursor: pointer; border: 1px solid #444;
+                    image-rendering: pixelated; }}
+  .detail {{ width: 600px; }}
+  .detail h2 {{ font-size: 14px; margin-bottom: 8px; }}
+  .info {{ font-size: 12px; margin-bottom: 8px; color: #aaa; }}
+  canvas#locbar {{ border: 1px solid #444; width: 100%; height: 48px; }}
+  .legend {{ display: flex; justify-content: space-between; font-size: 10px;
+             color: #666; margin-top: 2px; }}
+  .hint {{ margin-top: 24px; font-size: 11px; color: #666; }}
+</style>
+</head>
+<body>
+<h1>Binary Minimap &mdash; {scale} scale</h1>
+<p class="subtitle">File size: {file_size:,} bytes</p>
+<div class="container">
+  <div class="minimap-wrap">
+    <span class="minimap-label">Byte value (0x00 &ndash; 0xFF)</span>
+    <canvas id="minimap" width="48" height="256"></canvas>
+  </div>
+  <div class="detail">
+    <h2 id="heading">Click a row in the minimap&hellip;</h2>
+    <p class="info" id="info">&nbsp;</p>
+    <canvas id="locbar" width="1024" height="48"></canvas>
+    <div class="legend"><span>Offset 0</span><span>{file_size:,}</span></div>
+  </div>
+</div>
+<p class="hint">Each minimap row = one byte value. Brightness = frequency ({scale}).
+Click to see where that byte appears in the file.</p>
+<script>
+const freq = {json.dumps(freq)};
+const bright = {json.dumps(bright)};
+const binData = {json.dumps(bin_data)};
+const numBins = {num_bins};
+const fileSize = {file_size};
+
+// --- Draw minimap strip ---
+const mc = document.getElementById("minimap");
+const mctx = mc.getContext("2d");
+for (let b = 0; b < 256; b++) {{
+  const v = bright[b];
+  mctx.fillStyle = `rgb(${{v}},${{v}},${{v}})`;
+  mctx.fillRect(0, b, 48, 1);
+}}
+
+// --- Location bar ---
+const lc = document.getElementById("locbar");
+const lctx = lc.getContext("2d");
+
+function showByte(byteVal) {{
+  document.getElementById("heading").textContent =
+    "Byte 0x" + byteVal.toString(16).toUpperCase().padStart(2, "0") +
+    " (" + byteVal + ")";
+  document.getElementById("info").textContent =
+    "Frequency: " + freq[byteVal].toLocaleString() + " occurrences";
+
+  lctx.fillStyle = "#111";
+  lctx.fillRect(0, 0, lc.width, lc.height);
+
+  const bins = binData[byteVal.toString()];
+  if (!bins) return;
+
+  const maxBin = Math.max(...bins);
+  if (maxBin === 0) return;
+
+  for (let i = 0; i < numBins; i++) {{
+    if (bins[i] === 0) continue;
+    const ratio = bins[i] / maxBin;
+    const h = Math.max(1, Math.round(ratio * lc.height));
+    const g = Math.round(50 + ratio * 205);
+    lctx.fillStyle = `rgb(0,${{g}},0)`;
+    lctx.fillRect(i, lc.height - h, 1, h);
+  }}
+}}
+
+mc.addEventListener("click", function(e) {{
+  const rect = mc.getBoundingClientRect();
+  const y = Math.floor((e.clientY - rect.top) / rect.height * 256);
+  if (y >= 0 && y < 256) showByte(y);
+}});
+</script>
+</body>
+</html>
+""")
+
+    print(f"Wrote interactive minimap to {html_path}")
+
+
 def main() -> None:
     args = parse_args()
 
@@ -308,10 +477,13 @@ def main() -> None:
         counts = scan_pairs(args.input)
         peak = max_count(counts)
         write_ppm(counts, peak, args.output, args.scale)
-    else:  # 3d mode
+    elif args.mode == "3d":
         counts_3d = scan_triplets(args.input)
         peak = max_count_3d(counts_3d)
         write_plotly_3d(counts_3d, peak, args.output, args.scale)
+    else:  # minimap mode
+        positions, file_size = scan_byte_positions(args.input)
+        write_minimap_html(positions, file_size, args.output, args.scale)
 
 
 if __name__ == "__main__":

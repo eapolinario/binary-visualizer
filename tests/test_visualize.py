@@ -119,3 +119,75 @@ def test_3d_mode_integration(tmp_path: Path) -> None:
     assert "plotly" in content.lower()
     assert "3D Byte Triplet Visualization" in content
     assert "linear scale" in content.lower()
+
+
+def test_scan_byte_positions(tmp_path: Path) -> None:
+    data = bytes([0, 1, 2, 0, 1, 0])
+    target = tmp_path / "sample.bin"
+    target.write_bytes(data)
+
+    positions, file_size = visualize.scan_byte_positions(target)
+
+    assert file_size == 6
+    assert sorted(positions[0]) == [0, 3, 5]
+    assert sorted(positions[1]) == [1, 4]
+    assert positions[2] == [2]
+    # Byte value 3 never appears
+    assert 3 not in positions
+
+
+def test_scan_byte_positions_empty(tmp_path: Path) -> None:
+    target = tmp_path / "empty.bin"
+    target.write_bytes(b"")
+
+    positions, file_size = visualize.scan_byte_positions(target)
+
+    assert file_size == 0
+    assert len(positions) == 0
+
+
+def test_write_minimap_html(tmp_path: Path) -> None:
+    data = bytes([10, 20, 30, 10, 20, 10])
+    input_file = tmp_path / "test.bin"
+    input_file.write_bytes(data)
+
+    positions, file_size = visualize.scan_byte_positions(input_file)
+    output_path = tmp_path / "minimap.html"
+
+    visualize.write_minimap_html(positions, file_size, output_path, "log")
+
+    assert output_path.exists()
+    content = output_path.read_text()
+    assert "Binary Minimap" in content
+    assert "log" in content
+    assert "minimap" in content.lower()
+
+
+def test_minimap_mode_integration(tmp_path: Path) -> None:
+    """Integration test for full minimap mode execution via main()."""
+    import sys
+    from unittest.mock import patch
+
+    data = bytes([5, 10, 15, 20, 25, 30, 35, 40])
+    input_file = tmp_path / "test_binary.bin"
+    input_file.write_bytes(data)
+
+    output_file = tmp_path / "test_minimap_output.ppm"
+
+    test_args = [
+        "visualize.py",
+        str(input_file),
+        "--mode", "minimap",
+        "--scale", "sqrt",
+        "-o", str(output_file),
+    ]
+
+    with patch.object(sys, "argv", test_args):
+        visualize.main()
+
+    html_output = output_file.with_suffix(".html")
+    assert html_output.exists()
+
+    content = html_output.read_text()
+    assert "Binary Minimap" in content
+    assert "sqrt" in content
