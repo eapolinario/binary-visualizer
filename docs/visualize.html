@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary Visualizer</title>
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #1a1a1a;
+    --border: #333;
+    --text: #e0e0e0;
+    --dim: #888;
+    --accent: #6cf;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: var(--dim);
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Drop zone */
+  #drop-zone {
+    width: 100%;
+    max-width: 540px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  #drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(102, 204, 255, 0.05);
+  }
+  #drop-zone p { color: var(--dim); font-size: 0.9rem; }
+  #drop-zone .cta {
+    display: inline-block;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    background: var(--accent);
+    color: #000;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  #file-input { display: none; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls label { font-size: 0.8rem; color: var(--dim); }
+  .controls select {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  /* Stats */
+  #stats {
+    font-size: 0.8rem;
+    color: var(--dim);
+    margin-top: 0.75rem;
+    text-align: center;
+  }
+
+  /* Canvas area (2D) */
+  #canvas-wrap {
+    margin-top: 1.5rem;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+  canvas#viz {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    image-rendering: pixelated;
+    width: 512px;
+    height: 512px;
+  }
+  .axis-label {
+    font-size: 0.75rem;
+    color: var(--dim);
+    margin-top: 0.4rem;
+  }
+
+  /* 3D container */
+  #three-wrap {
+    margin-top: 1.5rem;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+  #three-container {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    width: 600px;
+    height: 600px;
+  }
+  #three-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Loading indicator */
+  #loading {
+    display: none;
+    margin-top: 1rem;
+    color: var(--dim);
+    font-size: 0.85rem;
+  }
+
+  /* WASM load error */
+  #wasm-error {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #2a1515;
+    border: 1px solid #5a2020;
+    border-radius: 8px;
+    color: #f88;
+    font-size: 0.85rem;
+    max-width: 540px;
+    text-align: center;
+  }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<h1>Binary Visualizer</h1>
+<p class="subtitle">Upload any file to visualize its byte-pair or byte-triplet frequency</p>
+
+<div id="wasm-error">
+  Failed to load the WASM module. Make sure you built it with
+  <code>make wasm</code> and are serving this page over HTTP.
+</div>
+
+<div id="drop-zone">
+  <p>Drag &amp; drop a file here</p>
+  <span class="cta">Choose file</span>
+  <input type="file" id="file-input">
+</div>
+
+<div class="controls">
+  <label for="mode-select">Mode</label>
+  <select id="mode-select">
+    <option value="2d">2D Byte Pairs</option>
+    <option value="3d" selected>3D Byte Triplets</option>
+  </select>
+
+  <label for="scale-select">Tone mapping</label>
+  <select id="scale-select">
+    <option value="0" selected>Logarithmic</option>
+    <option value="1">Square root</option>
+    <option value="2">Linear</option>
+  </select>
+</div>
+
+<div id="loading">Processing...</div>
+<div id="stats"></div>
+
+<div id="canvas-wrap">
+  <canvas id="viz" width="256" height="256"></canvas>
+  <span class="axis-label">X: first byte &nbsp; Y: second byte &nbsp; Brightness: frequency</span>
+</div>
+
+<div id="three-wrap">
+  <div id="three-container"></div>
+  <span class="axis-label">X: 1st byte &nbsp; Y: 2nd byte &nbsp; Z: 3rd byte &nbsp; Color: frequency (viridis)</span>
+</div>
+
+<script type="module">
+  import init, { visualize, file_stats, triplet_data, triplet_stats } from "./pkg/binary_visualizer_wasm.js";
+  import * as THREE from "three";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+  // --- DOM refs ---
+  const dropZone       = document.getElementById("drop-zone");
+  const fileInput      = document.getElementById("file-input");
+  const modeSelect     = document.getElementById("mode-select");
+  const scaleSelect    = document.getElementById("scale-select");
+  const loading        = document.getElementById("loading");
+  const statsEl        = document.getElementById("stats");
+  const canvasWrap     = document.getElementById("canvas-wrap");
+  const canvas         = document.getElementById("viz");
+  const ctx            = canvas.getContext("2d");
+  const threeWrap      = document.getElementById("three-wrap");
+  const threeContainer = document.getElementById("three-container");
+  const wasmError      = document.getElementById("wasm-error");
+
+  let currentBytes = null;
+  let currentFileName = "";
+  let wasmReady = false;
+
+  // --- WASM init ---
+  try {
+    await init();
+    wasmReady = true;
+  } catch (e) {
+    console.error("WASM init failed:", e);
+    wasmError.style.display = "block";
+  }
+
+  // =================================================================
+  // Three.js scene setup
+  // =================================================================
+  const scene    = new THREE.Scene();
+  scene.background = new THREE.Color(0x0e0e0e);
+
+  const camera   = new THREE.PerspectiveCamera(50, 1, 1, 2000);
+  camera.position.set(420, 320, 420);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(600, 600);
+  threeContainer.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(128, 128, 128);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.2;
+  controls.update();
+
+  // Stop auto-rotation when user interacts
+  controls.addEventListener("start", () => { controls.autoRotate = false; });
+
+  // --- Bounding cube wireframe ---
+  const boxGeo  = new THREE.BoxGeometry(256, 256, 256);
+  const edges   = new THREE.EdgesGeometry(boxGeo);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x444444 });
+  const cube    = new THREE.LineSegments(edges, lineMat);
+  cube.position.set(128, 128, 128);
+  scene.add(cube);
+
+  // --- Axis lines (colored) ---
+  function addAxis(from, to, color) {
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(...from),
+      new THREE.Vector3(...to),
+    ]);
+    const mat = new THREE.LineBasicMaterial({ color });
+    scene.add(new THREE.Line(geo, mat));
+  }
+  addAxis([0, 0, 0], [270, 0, 0], 0xff4444); // X red
+  addAxis([0, 0, 0], [0, 270, 0], 0x44ff44); // Y green
+  addAxis([0, 0, 0], [0, 0, 270], 0x4488ff); // Z blue
+
+  // --- Axis labels using sprite text ---
+  function makeLabel(text, position, color) {
+    const canvas2 = document.createElement("canvas");
+    canvas2.width = 128;
+    canvas2.height = 48;
+    const ctx2 = canvas2.getContext("2d");
+    ctx2.fillStyle = color;
+    ctx2.font = "bold 28px sans-serif";
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "middle";
+    ctx2.fillText(text, 64, 24);
+
+    const tex = new THREE.CanvasTexture(canvas2);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.set(...position);
+    sprite.scale.set(40, 15, 1);
+    scene.add(sprite);
+  }
+  makeLabel("X (1st)", [285, 0, 0], "#ff6666");
+  makeLabel("Y (2nd)", [0, 285, 0], "#66ff66");
+  makeLabel("Z (3rd)", [0, 0, 285], "#6699ff");
+
+  // --- Tick labels at 0, 128, 255 ---
+  function addTickLabels(axis) {
+    const ticks = [0, 128, 255];
+    for (const v of ticks) {
+      const hex = "0x" + v.toString(16).toUpperCase().padStart(2, "0");
+      let pos;
+      if (axis === "x") pos = [v, -18, 0];
+      else if (axis === "y") pos = [-18, v, 0];
+      else pos = [0, -18, v];
+
+      const c = document.createElement("canvas");
+      c.width = 96; c.height = 36;
+      const x = c.getContext("2d");
+      x.fillStyle = "#888";
+      x.font = "22px monospace";
+      x.textAlign = "center";
+      x.textBaseline = "middle";
+      x.fillText(hex, 48, 18);
+      const tex = new THREE.CanvasTexture(c);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      sprite.position.set(...pos);
+      sprite.scale.set(28, 10, 1);
+      scene.add(sprite);
+    }
+  }
+  addTickLabels("x");
+  addTickLabels("y");
+  addTickLabels("z");
+
+  // --- Point cloud ---
+  let pointCloud = null;
+  const MAX_POINTS = 150000;
+
+  // Viridis-like colormap
+  function viridis(t) {
+    t = Math.max(0, Math.min(1, t));
+    const C = [
+      [0.267, 0.004, 0.329],
+      [0.282, 0.141, 0.458],
+      [0.127, 0.567, 0.551],
+      [0.544, 0.774, 0.247],
+      [0.993, 0.906, 0.144],
+    ];
+    const idx = t * (C.length - 1);
+    const i = Math.min(Math.floor(idx), C.length - 2);
+    const f = idx - i;
+    return [
+      C[i][0] + f * (C[i + 1][0] - C[i][0]),
+      C[i][1] + f * (C[i + 1][1] - C[i][1]),
+      C[i][2] + f * (C[i + 1][2] - C[i][2]),
+    ];
+  }
+
+  function updatePointCloud(packedF32) {
+    if (pointCloud) {
+      pointCloud.geometry.dispose();
+      pointCloud.material.dispose();
+      scene.remove(pointCloud);
+      pointCloud = null;
+    }
+
+    const n = packedF32.length / 4;
+    if (n === 0) return;
+
+    const positions = new Float32Array(n * 3);
+    const colors    = new Float32Array(n * 3);
+
+    for (let i = 0; i < n; i++) {
+      const x = packedF32[i * 4];
+      const y = packedF32[i * 4 + 1];
+      const z = packedF32[i * 4 + 2];
+      const b = packedF32[i * 4 + 3];
+
+      positions[i * 3]     = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      const [r, g, bl] = viridis(b);
+      colors[i * 3]     = r;
+      colors[i * 3 + 1] = g;
+      colors[i * 3 + 2] = bl;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("color",    new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 1.8,
+      vertexColors: true,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+
+    pointCloud = new THREE.Points(geo, mat);
+    scene.add(pointCloud);
+  }
+
+  // Animation loop
+  let animating = false;
+  function animate() {
+    if (!animating) return;
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  // =================================================================
+  // Rendering
+  // =================================================================
+  function render2D() {
+    if (!currentBytes) return;
+    const scale = parseInt(scaleSelect.value, 10);
+    const rgba  = visualize(currentBytes, scale);
+    const imgData = new ImageData(
+      new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, rgba.byteLength),
+      256, 256
+    );
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function render3D() {
+    if (!currentBytes) return;
+    const scale = parseInt(scaleSelect.value, 10);
+    const packed = triplet_data(currentBytes, scale, MAX_POINTS);
+    updatePointCloud(packed);
+  }
+
+  function showStats() {
+    if (!currentBytes) return;
+    const fmt = (n) => n.toLocaleString();
+    const mode = modeSelect.value;
+
+    if (mode === "2d") {
+      const s = file_stats(currentBytes);
+      statsEl.textContent =
+        `${currentFileName}  \u2014  ${fmt(s[0])} bytes  \u00b7  ${fmt(s[1])} unique pairs  \u00b7  max count ${fmt(s[2])}`;
+    } else {
+      const s = triplet_stats(currentBytes);
+      statsEl.textContent =
+        `${currentFileName}  \u2014  ${fmt(s[0])} bytes  \u00b7  ${fmt(s[1])} unique triplets  \u00b7  max count ${fmt(s[2])}`;
+    }
+  }
+
+  function render() {
+    if (!currentBytes) return;
+    const mode = modeSelect.value;
+
+    if (mode === "2d") {
+      animating = false;
+      threeWrap.style.display = "none";
+      render2D();
+      canvasWrap.style.display = "flex";
+    } else {
+      canvasWrap.style.display = "none";
+      render3D();
+      threeWrap.style.display = "flex";
+      if (!animating) {
+        animating = true;
+        animate();
+      }
+    }
+    showStats();
+  }
+
+  // --- File handling ---
+  function handleFile(file) {
+    if (!wasmReady) return;
+    loading.style.display = "block";
+    statsEl.textContent = "";
+    currentFileName = file.name;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      currentBytes = new Uint8Array(reader.result);
+      render();
+      loading.style.display = "none";
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // Re-render when controls change
+  scaleSelect.addEventListener("change", render);
+  modeSelect.addEventListener("change", render);
+
+  // Click to pick file
+  dropZone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) handleFile(fileInput.files[0]);
+  });
+
+  // Drag & drop
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("drag-over");
+  });
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("drag-over");
+  });
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+</script>
+</body>
+</html>
