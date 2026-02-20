@@ -105,6 +105,8 @@
     height: 512px;
   }
   .axis-label {
+    display: flex;
+    gap: 1rem;
     font-size: 0.75rem;
     color: var(--dim);
     margin-top: 0.4rem;
@@ -198,12 +200,12 @@
 
 <div id="canvas-wrap">
   <canvas id="viz" width="256" height="256" role="img" aria-label="Byte-pair frequency heatmap visualization"></canvas>
-  <span class="axis-label">X: first byte &nbsp; Y: second byte &nbsp; Brightness: frequency</span>
+  <span class="axis-label"><span>X: first byte</span><span>Y: second byte</span><span>Brightness: frequency</span></span>
 </div>
 
 <div id="three-wrap">
   <div id="three-container"></div>
-  <span class="axis-label">X: 1st byte &nbsp; Y: 2nd byte &nbsp; Z: 3rd byte &nbsp; Color: frequency (viridis)</span>
+  <span class="axis-label"><span>X: 1st byte</span><span>Y: 2nd byte</span><span>Z: 3rd byte</span><span>Color: frequency (viridis)</span></span>
 </div>
 
 <script type="module">
