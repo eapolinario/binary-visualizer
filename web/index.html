@@ -488,6 +488,11 @@
       render();
       loading.style.display = "none";
     };
+    reader.onerror = () => {
+      console.error("File read failed:", reader.error);
+      loading.style.display = "none";
+      statsEl.textContent = "Failed to read file. Please try again.";
+    };
     reader.readAsArrayBuffer(file);
   }
 
