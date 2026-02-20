@@ -199,7 +199,7 @@
 <div id="stats"></div>
 
 <div id="canvas-wrap">
-  <canvas id="viz" width="256" height="256"></canvas>
+  <canvas id="viz" width="256" height="256" role="img" aria-label="Byte-pair frequency heatmap visualization"></canvas>
   <span class="axis-label"><span>X: first byte</span><span>Y: second byte</span><span>Brightness: frequency</span></span>
 </div>
 
@@ -490,6 +490,11 @@
       render();
       loading.style.display = "none";
     };
+    reader.onerror = () => {
+      console.error("File read failed:", reader.error);
+      loading.style.display = "none";
+      statsEl.textContent = "Failed to read file. Please try again.";
+    };
     reader.readAsArrayBuffer(file);
   }
 
@@ -508,8 +513,11 @@
     e.preventDefault();
     dropZone.classList.add("drag-over");
   });
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.classList.remove("drag-over");
+  dropZone.addEventListener("dragleave", (e) => {
+    // Only remove highlight when actually leaving the drop zone, not when moving over its children
+    if (!e.relatedTarget || !dropZone.contains(e.relatedTarget)) {
+      dropZone.classList.remove("drag-over");
+    }
   });
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();

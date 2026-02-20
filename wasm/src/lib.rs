@@ -131,12 +131,47 @@ mod tests {
     }
 
     #[test]
+    fn single_byte_input() {
+        let pixels = visualize(&[0x42], 0);
+        assert_eq!(pixels.len(), 256 * 256 * 4);
+        // All alpha should be 255, all RGB should be 0 even for single-byte input
+        for i in 0..256 * 256 {
+            assert_eq!(pixels[i * 4], 0);       // R
+            assert_eq!(pixels[i * 4 + 1], 0);   // G
+            assert_eq!(pixels[i * 4 + 2], 0);   // B
+            assert_eq!(pixels[i * 4 + 3], 255); // A
+        }
+    }
+
+    #[test]
     fn single_pair() {
         // Two bytes: 0x41, 0x42 -> one pair at (0x41, 0x42)
         let pixels = visualize(&[0x41, 0x42], 0);
         // The pixel at (0x41, 0x42) should be bright (255 since it's the only/max)
         let idx = (0x42 * 256 + 0x41) * 4;
         assert_eq!(pixels[idx], 255);
+    }
+
+    #[test]
+    fn multiple_pairs_gradient() {
+        // Byte sequence: [0, 1, 0, 1, 0, 2]
+        // Pairs (windows of 2): (0,1), (1,0), (0,1), (1,0), (0,2)
+        // So counts are: (0,1) x2, (1,0) x2, (0,2) x1; max count is 2.
+        let data = [0u8, 1, 0, 1, 0, 2];
+        // Use linear brightness mode (2) so scaling is predictable.
+        let pixels = visualize(&data, 2);
+
+        // (x, y) = (0, 1) should have the maximum brightness (count 2).
+        let idx_max = (1 * 256 + 0) * 4;
+        let max_brightness = pixels[idx_max];
+        assert_eq!(max_brightness, 255);
+
+        // (x, y) = (0, 2) has lower frequency (count 1), so lower brightness.
+        let idx_lower = (2 * 256 + 0) * 4;
+        let lower_brightness = pixels[idx_lower];
+
+        assert!(lower_brightness > 0);
+        assert!(lower_brightness < max_brightness);
     }
 
     #[test]
@@ -150,6 +185,13 @@ mod tests {
         assert_eq!(brightness(0, 100, 2), 0);
         assert_eq!(brightness(100, 100, 2), 255);
         assert_eq!(brightness(50, 100, 2), 128);
+    }
+
+    #[test]
+    fn brightness_sqrt() {
+        assert_eq!(brightness(0, 100, 1), 0);
+        assert_eq!(brightness(25, 100, 1), 128); // sqrt(25/100) = 0.5 -> ~128
+        assert_eq!(brightness(100, 100, 1), 255);
     }
 
     #[test]
