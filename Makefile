@@ -9,7 +9,7 @@ PPM_DIR ?=
 PPM_VIDEO_OUTPUT ?=
 PPM_FRAMERATE ?= 4
 
-.PHONY: run run-3d test lint ppm-video bin-ppm bin-video
+.PHONY: run run-3d run-minimap test lint ppm-video bin-ppm bin-video
 
 # Build a PPM for a single input binary.
 run:
@@ -30,6 +30,18 @@ run-3d:
 	@input_basename=$$(basename "$(INPUT)"); \
 	output_file="$(OUTPUT_DIR)/$${input_basename}.html"; \
 	uv run visualize.py --mode 3d --scale $(SCALE) -o "$$output_file" $(INPUT)
+
+# Build an interactive minimap HTML for a single input binary.
+# Uses OUTPUT_DIR instead of OUTPUT, and derives filename from INPUT.
+run-minimap:
+	@if [ -z "$(INPUT)" ]; then \
+		echo "Usage: make run-minimap INPUT=/path/to/binary [OUTPUT_DIR=. SCALE=log]"; \
+		exit 1; \
+	fi
+	@mkdir -p $(OUTPUT_DIR)
+	@input_basename=$$(basename "$(INPUT)"); \
+	output_file="$(OUTPUT_DIR)/$${input_basename}.html"; \
+	uv run visualize.py --mode minimap --scale $(SCALE) -o "$$output_file" $(INPUT)
 
 test:
 	PYTHONPATH=. uv run --with pytest --with plotly --with tqdm pytest tests/test_visualize.py
