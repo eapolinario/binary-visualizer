@@ -506,8 +506,11 @@
     e.preventDefault();
     dropZone.classList.add("drag-over");
   });
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.classList.remove("drag-over");
+  dropZone.addEventListener("dragleave", (e) => {
+    // Only remove highlight when actually leaving the drop zone, not when moving over its children
+    if (!e.relatedTarget || !dropZone.contains(e.relatedTarget)) {
+      dropZone.classList.remove("drag-over");
+    }
   });
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
