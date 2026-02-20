@@ -138,8 +138,9 @@ def scan_byte_positions(path: Path) -> tuple[BytePositions, int]:
 
     with path.open("rb") as handle:
         with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-            for i in tqdm(range(len(mm)), desc="Scanning byte positions", unit="bytes"):
-                positions[mm[i]].append(i)
+            with memoryview(mm) as mv:
+                for i, b in enumerate(tqdm(mv, desc="Scanning byte positions", unit="bytes")):
+                    positions[b].append(i)
 
     return positions, file_size
 
