@@ -9,7 +9,7 @@ PPM_DIR ?=
 PPM_VIDEO_OUTPUT ?=
 PPM_FRAMERATE ?= 4
 
-.PHONY: run run-3d test lint ppm-video bin-ppm bin-video
+.PHONY: run run-3d test lint ppm-video bin-ppm bin-video wasm wasm-test serve
 
 # Build a PPM for a single input binary.
 run:
@@ -55,6 +55,19 @@ ppm-video:
 	uv run python scripts/ppm_labels.py --ppm-dir "$(PPM_DIR)" --framerate $(PPM_FRAMERATE) --output "$$tmp_ssa"; \
 	ffmpeg -y -framerate $(PPM_FRAMERATE) -pattern_type glob -i '$(PPM_DIR)/*.ppm' -vf "pad=iw:ih+60:0:0:black,subtitles='$$tmp_ssa'" -c:v libx264 -preset veryslow -crf 0 -pix_fmt yuv444p $(PPM_VIDEO_OUTPUT); \
 	rm -f "$$tmp_ssa"
+
+# Build WASM module and copy into web/ for serving.
+wasm:
+	wasm-pack build wasm --target web --out-dir ../web/pkg --no-typescript
+
+# Run Rust unit tests for the WASM crate.
+wasm-test:
+	cargo test --manifest-path wasm/Cargo.toml
+
+# Start a local dev server for the web visualizer.
+serve: wasm
+	@echo "Serving at http://localhost:8080"
+	python3 -m http.server 8080 --directory web
 
 # For every binary in BIN_DIR, generate a PPM in PPM_DIR.
 bin-ppm:
