@@ -355,7 +355,7 @@ def write_minimap_html(
             continue
         bins = [0] * num_bins
         for offset in positions[byte_val]:
-            idx = int(offset / file_size * num_bins) if file_size else 0
+            idx = offset * num_bins // file_size if file_size else 0
             idx = min(idx, num_bins - 1)
             bins[idx] += 1
         bin_data[byte_val] = bins
