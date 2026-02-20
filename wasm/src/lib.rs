@@ -131,6 +131,19 @@ mod tests {
     }
 
     #[test]
+    fn single_byte_input() {
+        let pixels = visualize(&[0x42], 0);
+        assert_eq!(pixels.len(), 256 * 256 * 4);
+        // All alpha should be 255, all RGB should be 0 even for single-byte input
+        for i in 0..256 * 256 {
+            assert_eq!(pixels[i * 4], 0);       // R
+            assert_eq!(pixels[i * 4 + 1], 0);   // G
+            assert_eq!(pixels[i * 4 + 2], 0);   // B
+            assert_eq!(pixels[i * 4 + 3], 255); // A
+        }
+    }
+
+    #[test]
     fn single_pair() {
         // Two bytes: 0x41, 0x42 -> one pair at (0x41, 0x42)
         let pixels = visualize(&[0x41, 0x42], 0);
