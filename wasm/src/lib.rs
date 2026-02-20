@@ -188,6 +188,13 @@ mod tests {
     }
 
     #[test]
+    fn brightness_sqrt() {
+        assert_eq!(brightness(0, 100, 1), 0);
+        assert_eq!(brightness(25, 100, 1), 128); // sqrt(25/100) = 0.5 -> ~128
+        assert_eq!(brightness(100, 100, 1), 255);
+    }
+
+    #[test]
     fn file_stats_works() {
         let stats = file_stats(&[0, 1, 0, 1, 0]);
         // pairs: (0,1) x2, (1,0) x2 -> 2 unique, max 2
