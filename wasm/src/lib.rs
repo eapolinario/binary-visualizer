@@ -153,6 +153,28 @@ mod tests {
     }
 
     #[test]
+    fn multiple_pairs_gradient() {
+        // Byte sequence: [0, 1, 0, 1, 0, 2]
+        // Pairs (windows of 2): (0,1), (1,0), (0,1), (1,0), (0,2)
+        // So counts are: (0,1) x2, (1,0) x2, (0,2) x1; max count is 2.
+        let data = [0u8, 1, 0, 1, 0, 2];
+        // Use linear brightness mode (2) so scaling is predictable.
+        let pixels = visualize(&data, 2);
+
+        // (x, y) = (0, 1) should have the maximum brightness (count 2).
+        let idx_max = (1 * 256 + 0) * 4;
+        let max_brightness = pixels[idx_max];
+        assert_eq!(max_brightness, 255);
+
+        // (x, y) = (0, 2) has lower frequency (count 1), so lower brightness.
+        let idx_lower = (2 * 256 + 0) * 4;
+        let lower_brightness = pixels[idx_lower];
+
+        assert!(lower_brightness > 0);
+        assert!(lower_brightness < max_brightness);
+    }
+
+    #[test]
     fn brightness_log() {
         assert_eq!(brightness(0, 100, 0), 0);
         assert_eq!(brightness(100, 100, 0), 255);
